@@ -15,7 +15,8 @@ import { analyze, finish } from './analyze';
 import { clarify, MAX_CLUES } from './clarify';
 import { products, fetchNoon } from './products';
 import { parseNoonSearch } from './noon/parse';
-import { AiError } from './gemini';
+import { AiError, describeAiError } from './gemini';
+import { diagnose } from './diag';
 import { safeEqual, takeQuota } from './kv';
 import mockAnalyze from '../mocks/analyze.json';
 import mockUnusable from '../mocks/analyze-unusable.json';
@@ -61,6 +62,8 @@ async function body<T>(c: Ctx, schema: { safeParse: (v: unknown) => { success: t
 
 function aiFail(c: Ctx, e: unknown) {
   if (e instanceof AiError) {
+    // Status and Gemini's error text only: never the photo, answers or prompt.
+    console.error('ai_error', c.req.path, JSON.stringify(describeAiError(e)));
     if (e.kind === 'timeout') return fail(c, 504, 'ai_failed', 'The analysis took too long. Please try again.');
     return fail(c, 502, 'ai_failed', 'We could not finish the analysis. Please try again.');
   }
@@ -156,6 +159,9 @@ app.get('/probe', async (c) => {
     return c.json({ query: q, verdict: 'blocked', error: (e as Error)?.name ?? 'error', ms: Date.now() - started });
   }
 });
+
+// Why do Gemini calls fail? Three tiny test calls; see src/diag.ts.
+app.get('/diag', async (c) => c.json(await diagnose(c.env)));
 
 app.notFound((c) => fail(c, 400, 'bad_request', 'Unknown endpoint.'));
 app.onError((e, c) => aiFail(c, e));

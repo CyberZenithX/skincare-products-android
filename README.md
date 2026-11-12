@@ -6,7 +6,7 @@ The rule above everything else is **accurate results**. When speed, looks or ext
 
 ```
 /app            Expo app (TypeScript, Expo Router, dev build — not Expo Go)
-/backend        Vercel Node.js function (Hono, TypeScript): /analyze /clarify /products /verify /probe /health
+/backend        Vercel Node.js function (Hono, TypeScript): /analyze /clarify /products /verify /probe /diag /health
 /backend/mocks  saved sample responses served when MOCK=1
 /shared         zod schemas + types + safety rules + Skin Map geometry + camera guide (used by app and backend)
 vercel.json     tells Vercel how to install and build /backend (Build Output API)
