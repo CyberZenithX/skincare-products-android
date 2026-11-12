@@ -1,25 +1,28 @@
 {
-  "name": "@skinfix/worker",
+  "name": "@skinfix/backend",
   "version": "1.0.0",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "dev": "tsx watch --env-file-if-exists=.env.local src/server.ts",
+    "build": "node scripts/build-vercel.mjs",
     "test": "vitest run",
     "typecheck": "tsc",
     "check-analyze": "node scripts/check-analyze.mjs"
   },
   "dependencies": {
     "@google/genai": "^3.2.0",
+    "@hono/node-server": "^2.1.7",
+    "@upstash/redis": "^1.41.0",
     "hono": "^4.13.18"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20261112.1",
+    "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^5.1.0",
-    "wrangler": "^4.160.1"
+    "vitest": "^5.1.0"
   },
   "private": true,
   "type": "module"

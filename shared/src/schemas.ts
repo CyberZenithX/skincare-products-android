@@ -239,11 +239,14 @@ export type ClarifyResponse = z.infer<typeof ClarifyResponse>;
 
 // ---------------------------------------------------------------- /products
 
+/** Vercel rejects request bodies over 4.5 MB, so all raw pages together stay under this. */
+export const RAW_PAGES_MAX_CHARS = 4_000_000;
+
 export const RawPage = z.object({
   /** Which query this page is for (the product's noon_query or backup_query). */
   query: z.string().max(60),
   /** The embedded JSON (or whole HTML) the phone's WebView read from noon's search page. */
-  page: z.string().max(4_000_000),
+  page: z.string().max(RAW_PAGES_MAX_CHARS),
 });
 
 export const ProductsRequest = z.object({
@@ -253,7 +256,12 @@ export const ProductsRequest = z.object({
   /** Language for the one-line pick reasons. Listings themselves never depend on it. */
   language: Language,
   /** Layer 2: search pages the phone fetched through its hidden WebView. */
-  raw_pages: z.array(RawPage).min(1).max(2).optional(),
+  raw_pages: z
+    .array(RawPage)
+    .min(1)
+    .max(2)
+    .refine((pages) => pages.reduce((n, p) => n + p.page.length, 0) <= RAW_PAGES_MAX_CHARS, 'raw pages too large')
+    .optional(),
   /** Layer 3: the app tells us it fell back to a plain search link (for the counter). */
   link_fallback: z.boolean().optional(),
 });
@@ -279,7 +287,7 @@ export type PickedListing = z.infer<typeof PickedListing>;
 export const ProductsResponse = z.discriminatedUnion('status', [
   z.object({
     status: z.literal('ok'),
-    layer: z.enum(['worker', 'webview']),
+    layer: z.enum(['server', 'webview']),
     cached: z.boolean(),
     listings: z.array(PickedListing).max(3),
     /** Always present so the app can show "See more on noon". */

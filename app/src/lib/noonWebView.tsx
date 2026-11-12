@@ -1,6 +1,6 @@
 // Layer 2: the phone fetches noon's search page in a hidden WebView (a normal
 // shopper on a normal connection), grabs the embedded JSON, and hands the raw
-// text to the Worker, which runs the same parseNoonSearch as Layer 1.
+// text to the backend, which runs the same parseNoonSearch as Layer 1.
 
 import { useCallback, useRef, useState } from 'react';
 import { View } from 'react-native';

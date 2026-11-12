@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Phase 2 acceptance checks against a running Worker (local or deployed).
+// Phase 2 acceptance checks against a running backend (local or deployed).
 //
 //   API=http://localhost:8787 CODE=your-invite node scripts/check-analyze.mjs fixtures/selfies/person1.jpg
 //

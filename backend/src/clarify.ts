@@ -33,7 +33,7 @@ export async function clarify(env: Env, req: ClarifyRequest): Promise<ClarifyRes
   const clues = req.turns.filter((t) => t.kind === 'clue').length;
   const testTurn = req.turns.find((t) => t.kind === 'test');
   const testSkipped = !!testTurn && /^skipped$/i.test(testTurn.answered.trim());
-  // The Worker owns the cap: after 3 clues (the 4th call), or a skipped test, answer now.
+  // The backend owns the cap: after 3 clues (the 4th call), or a skipped test, answer now.
   const mustAnswer = req.force_answer || clues >= MAX_CLUES || testSkipped;
   const allowTest = req.question_id === 'skin_feel' && !testTurn;
   const clueNumber = Math.min(clues + 1, MAX_CLUES + 1);

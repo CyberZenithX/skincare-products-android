@@ -96,3 +96,16 @@ describe('Gemini plumbing', () => {
     expect(checkProfile({ ...p, confidence: 'low', also_possible: [], how_to_confirm: '' })).toMatch(/not certain/);
   });
 });
+
+describe('store', () => {
+  it('memory store counts atomically and expires', async () => {
+    const { MemoryStore } = await import('../src/store');
+    const s = new MemoryStore();
+    expect(await s.incr('k', 60)).toBe(1);
+    expect(await s.incr('k', 60)).toBe(2);
+    await s.setJson('j', { a: 1 }, 60);
+    expect(await s.getJson('j')).toEqual({ a: 1 });
+    await s.setJson('old', 1, -1);
+    expect(await s.getJson('old')).toBeNull();
+  });
+});

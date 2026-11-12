@@ -1,4 +1,4 @@
-// Typed client for the Worker. Every shape comes from @skinfix/shared and every
+// Typed client for the backend. Every shape comes from @skinfix/shared and every
 // response is validated before the UI sees it.
 
 import {

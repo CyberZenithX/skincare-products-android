@@ -37,7 +37,7 @@ describe('products pipeline', () => {
     const r = await products(env, req, { fetchPage, pick });
     expect(r.status).toBe('ok');
     if (r.status !== 'ok') return;
-    expect(r.layer).toBe('worker');
+    expect(r.layer).toBe('server');
     expect(r.listings).toHaveLength(3);
     for (const l of r.listings) {
       expect(l.price_aed).toBeLessThanOrEqual(50);
@@ -47,7 +47,7 @@ describe('products pipeline', () => {
 
     const again = await products(env, req, { fetchPage, pick });
     expect(again.status === 'ok' && again.cached).toBe(true);
-    expect(calls).toBe(1); // served from KV
+    expect(calls).toBe(1); // served from the cache
   });
 
   it('Layer 1: a block page returns blocked with both queries, no retry loop', async () => {
@@ -98,5 +98,15 @@ describe('products pipeline', () => {
       pick: async (_e, _r, c) => [{ ...c[1]!, reason: 'x' }],
     });
     expect(r.status === 'ok' && r.listings.map((l) => l.id)).toEqual(['N44444444A']);
+  });
+});
+
+describe('upload size', () => {
+  it('rejects raw pages over the Vercel body limit', async () => {
+    const { ProductsRequest, RAW_PAGES_MAX_CHARS } = await import('@skinfix/shared');
+    const big = 'x'.repeat(RAW_PAGES_MAX_CHARS / 2 + 10);
+    const r = ProductsRequest.safeParse({ ...req, raw_pages: [{ query: 'a', page: big }, { query: 'b', page: big }] });
+    expect(r.success).toBe(false);
+    expect(ProductsRequest.safeParse({ ...req, raw_pages: [{ query: 'a', page: big }] }).success).toBe(true);
   });
 });

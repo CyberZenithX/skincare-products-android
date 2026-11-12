@@ -1,16 +1,5 @@
 import type { Env } from '../src/env';
-
-export class MemoryKV {
-  store = new Map<string, string>();
-  async get(key: string, type?: 'json') {
-    const v = this.store.get(key);
-    if (v === undefined) return null;
-    return type === 'json' ? JSON.parse(v) : v;
-  }
-  async put(key: string, value: string) {
-    this.store.set(key, value);
-  }
-}
+import { MemoryStore } from '../src/store';
 
 export function makeEnv(over: Partial<Env> = {}): Env {
   return {
@@ -18,7 +7,7 @@ export function makeEnv(over: Partial<Env> = {}): Env {
     INVITE_CODE: 'letmein',
     GEMINI_MODEL: 'test-model',
     MOCK: '1',
-    KV: new MemoryKV() as unknown as KVNamespace,
+    store: new MemoryStore(),
     ...over,
   };
 }

@@ -2,22 +2,15 @@ import type { Env } from './env';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-/**
- * Per-device daily counter. KV isn't atomic, so two simultaneous calls can both
- * pass at the limit; that's fine for a cost guard of this size.
- */
+/** Per-device daily counter (atomic INCR in Redis). */
 export async function takeQuota(env: Env, device: string, bucket: 'scan' | 'other', limit: number): Promise<boolean> {
-  const key = `rl:${bucket}:${today()}:${device}`;
-  const n = Number((await env.KV.get(key)) ?? '0');
-  if (n >= limit) return false;
-  await env.KV.put(key, String(n + 1), { expirationTtl: 60 * 60 * 48 });
-  return true;
+  const n = await env.store.incr(`rl:${bucket}:${today()}:${device}`, 60 * 60 * 48);
+  return n <= limit;
 }
 
-export async function bumpLayer(env: Env, layer: 'worker' | 'webview' | 'link' | 'blocked'): Promise<void> {
-  const key = `layer:${today()}:${layer}`;
-  const n = Number((await env.KV.get(key)) ?? '0');
-  await env.KV.put(key, String(n + 1), { expirationTtl: 60 * 60 * 24 * 90 });
+/** Which lookup layer served a request, per day, so we can see if blocks become common. */
+export async function bumpLayer(env: Env, layer: 'server' | 'webview' | 'link' | 'blocked'): Promise<void> {
+  await env.store.incr(`layer:${today()}:${layer}`, 60 * 60 * 24 * 90);
 }
 
 export async function sha256(text: string): Promise<string> {

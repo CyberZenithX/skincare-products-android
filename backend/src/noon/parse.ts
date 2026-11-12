@@ -1,4 +1,4 @@
-// parseNoonSearch: the ONE parser for noon search pages. The Worker's own fetch
+// parseNoonSearch: the ONE parser for noon search pages. The backend's own fetch
 // (Layer 1) and the phone's WebView text (Layer 2) both go through it.
 //
 // Order of attempts, most reliable first:

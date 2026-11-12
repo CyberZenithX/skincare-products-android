@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci --prefix shared && npm ci --prefix backend",
+  "buildCommand": "npm run build --prefix backend"
+}

@@ -1,9 +1,9 @@
 // The three-layer listing lookup, driven from the app:
-//   1. ask the Worker (it fetches noon itself, or answers from cache)
+//   1. ask the backend (it fetches noon itself, or answers from cache)
 //   2. if it says "blocked", load both searches in the hidden WebView and send the pages
-//   3. if that fails too, tell the Worker (counter) and show a plain noon search link
+//   3. if that fails too, tell the backend (counter) and show a plain noon search link
 
-import { noonSearchUrl, type AnalyzeResponse, type Language } from '@skinfix/shared';
+import { RAW_PAGES_MAX_CHARS, noonSearchUrl, type AnalyzeResponse, type Language } from '@skinfix/shared';
 import { api } from './api';
 import type { ListingState } from './scanStore';
 
@@ -23,10 +23,14 @@ export async function loadListings(
     if (first.status === 'link') return { state: 'link', search_url: first.search_url };
 
     // Layer 2
+    // Main search first; the backup page only if both fit under the upload limit.
     const pages: { query: string; page: string }[] = [];
+    let size = 0;
     for (const q of first.queries) {
       const page = await fetchPage(q);
-      if (page) pages.push({ query: q, page });
+      if (!page || size + page.length > RAW_PAGES_MAX_CHARS) continue;
+      pages.push({ query: q, page });
+      size += page.length;
     }
     if (pages.length) {
       const second = await api.products({ ...base, raw_pages: pages });

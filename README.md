@@ -6,29 +6,30 @@ The rule above everything else is **accurate results**. When speed, looks or ext
 
 ```
 /app            Expo app (TypeScript, Expo Router, dev build — not Expo Go)
-/worker         Cloudflare Worker (Hono, TypeScript): /analyze /clarify /products /verify /probe /health
-/worker/mocks   saved sample responses served when MOCK=1
-/shared         zod schemas + types + safety rules + Skin Map geometry (used by app and Worker)
+/backend        Vercel Node.js function (Hono, TypeScript): /analyze /clarify /products /verify /probe /health
+/backend/mocks  saved sample responses served when MOCK=1
+/shared         zod schemas + types + safety rules + Skin Map geometry + camera guide (used by app and backend)
+vercel.json     tells Vercel how to install and build /backend (Build Output API)
 /fixtures       test inputs (noon pages, ML Kit contours, consented selfies)
 ```
 
 ## noon fetch test (Phase 1): result
 
-**Blocked from datacenter IPs. Treat the phone WebView (Layer 2) as the expected main path, and the Worker fetch (Layer 1) as a bonus.**
+**Blocked from datacenter IPs. Treat the phone WebView (Layer 2) as the expected main path, and the backend's own fetch (Layer 1) as a bonus.**
 
-What was tested on 2026-11-12, from a cloud container (not yet from Cloudflare's own edge):
+What was tested on 2026-11-12, from a cloud container (not yet from a deployed Vercel function):
 
 | Client | Result |
 |---|---|
 | `curl` with a browser User-Agent and `Accept-Language: en-AE` (HTTP/2 and HTTP/1.1) | TLS completes, then noon drops the connection (`INTERNAL_ERROR` / empty reply) |
 | Real headless Chromium (Playwright) | HTTP 502, 174-byte body |
-| The Worker itself under `wrangler dev` (workerd runtime), `GET /probe` | HTTP 503, 0 bytes, so `verdict: "blocked"`, and `/products` correctly returns `{"status":"blocked"}` |
+| The backend's own fetch, `GET /probe` (Workers runtime, then Node 22 after the Vercel move) | HTTP 503 with 0 bytes; under Node, HTTP 200 with a 2.6 KB page and no products. Both give `verdict: "blocked"`, and `/products` returns `{"status":"blocked"}` |
 | Other sites from the same container | load normally |
 
-Because a real browser is blocked too, this is an IP-reputation block, not a User-Agent or TLS-fingerprint issue. Cloudflare Worker egress is also datacenter IP space, so expect the same. **Still to do (needs the Cloudflare account):** deploy and run `GET /probe` from the real edge, then update this table. If it says `works`, Layer 1 becomes the main path again with no code changes.
+Because a real browser is blocked too, this is an IP-reputation block, not a User-Agent or TLS-fingerprint issue. Vercel functions also run from datacenter (AWS) IP space, so expect the same. **Still to do (needs the Vercel project):** deploy and run `GET /probe` there, then update this table. If it says `works`, Layer 1 becomes the main path again with no code changes.
 
 ```bash
-curl -H "x-invite-code: $CODE" -H "x-device-id: probe-0001" "https://<worker>.workers.dev/probe?q=niacinamide%20serum"
+curl -H "x-invite-code: $CODE" -H "x-device-id: probe-0001" "https://<your-project>.vercel.app/probe?q=niacinamide%20serum"
 ```
 
 **Parser status:** `parseNoonSearch` reads `__NEXT_DATA__`, Next.js app-router flight chunks, a bare JSON string, and (strictly) visible HTML tiles. It finds catalogue items anywhere in the JSON rather than at one hard-coded path. It is tested against **synthetic** fixtures shaped like noon's catalogue items (`fixtures/noon/SYNTHETIC-*`), because noon couldn't be reached from here. **Before Phase 3 sign-off:** save a real search page from a phone or home connection into `fixtures/noon/` (e.g. `real-niacinamide-serum.html`) and add a test for it.
@@ -39,11 +40,11 @@ curl -H "x-invite-code: $CODE" -H "x-device-id: probe-0001" "https://<worker>.wo
 
 | Phase | State | What's verified | What's left (needs Abubakar) |
 |---|---|---|---|
-| 1 Setup + noon test | 🟡 | Repo layout, `/shared`, mocks, Worker runs in `wrangler dev`. noon test done (blocked, see above). App bundles for Android (`expo export`), and `expo-doctor` passes 20/20 | Dev build on a real phone (`npx expo run:android`). `/probe` from the deployed Worker |
+| 1 Setup + noon test | 🟡 | Repo layout, `/shared`, mocks. The backend builds for Vercel, and the built function is tested through a Node `(req, res)` launcher. noon test done (blocked, see above). App bundles for Android (`expo export`), and `expo-doctor` passes 20/20 | Dev build on a real phone (`npx expo run:android`). `/probe` from the deployed Vercel function |
 | 2 `/analyze` | 🟡 | zod plus semantic validation with one retry, clean errors, invite rejection, per-device limit, MOCK variants, safety enforcement (unit-tested), language-free analysis plus translation. `scripts/check-analyze.mjs` runs end to end against mocks | `GEMINI_API_KEY`, then run `check-analyze.mjs` on 3+ consented selfies of different skin tones plus a dark and a blurry one, and have a person check the results |
-| 3 `/products` | 🟡 | Parser (4 formats), filter, top-up, cache, block → `blocked`, raw page → same result as Worker fetch, Gemini picks only known ids. All unit-tested on **synthetic** pages | Save a real noon search page into `fixtures/noon/` and add a test. Then a real "niacinamide serum @ 50 AED" run where every URL opens |
+| 3 `/products` | 🟡 | Parser (4 formats), filter, top-up, cache, block → `blocked`, raw page → same result as the server fetch, Gemini picks only known ids. All unit-tested on **synthetic** pages | Save a real noon search page into `fixtures/noon/` and add a test. Then a real "niacinamide serum @ 50 AED" run where every URL opens |
 | 4 Camera + live guide | 🟡 | Oval checks unit-tested (`shared/src/guide.ts`): centred, distance, yaw/pitch/roll, multiple faces. Auto-capture after 1 s green, manual shutter, gallery, brightness check, un-mirroring | Try on a phone. Confirm `photo.isMirrored` and EXIF orientation behave on the front camera |
-| 5 Questions + helper | 🟡 | One per screen, auto-advance, back keeps answers, multi-select exclusivity, budget slider (RTL-aware), helper sheet with clue dots, tissue test and timer, skip → forced answer. Worker caps at 3 clues (tested with all "Not sure") | Phone run in both languages. **Native Arabic review of every question and option** |
+| 5 Questions + helper | 🟡 | One per screen, auto-advance, back keeps answers, multi-select exclusivity, budget slider (RTL-aware), helper sheet with clue dots, tissue test and timer, skip → forced answer. Backend caps at 3 clues (tested with all "Not sure") | Phone run in both languages. **Native Arabic review of every question and option** |
 | 6 Analyzing + Skin Map + results | 🟡 | Zone builder unit-tested (sides by geometry, tilt-aligned). Skia map with line-drawing reveal, zone fade-in with haptics, Map/Photo toggle, tap-zone sheet, legend, unusable-photo and red-flag screens | Visual check on a phone |
 | 7 Product cards | 🟡 | Skeletons, 3 cards, "Open on noon", "See more on noon", Layer 2 WebView fallback wired to the same parser | Confirm on a phone that the hidden WebView loads noon and returns the JSON |
 | 8 Polish | 🟡 | Share card (no photo), local history with reopen and compare, dark/light palettes, retry on every network error, answers kept on retry | Dark-mode and haptics pass on a phone |
@@ -57,19 +58,33 @@ curl -H "x-invite-code: $CODE" -H "x-device-id: probe-0001" "https://<worker>.wo
 
 ## Environment
 
-Worker secrets (`npx wrangler secret put …`): `GEMINI_API_KEY`, `INVITE_CODE`.
-Worker vars (`worker/wrangler.toml`): `GEMINI_MODEL` (default `gemini-3.8-flash`, the newest Flash in `@google/genai` 3.2), `GEMINI_TEMPERATURE` (0.2), `SCANS_PER_DAY` (20), `MOCK` (`1` = serve `/worker/mocks`).
-KV: one namespace bound as `KV` (`npx wrangler kv namespace create KV`, then paste the id into `wrangler.toml`).
-App: `EXPO_PUBLIC_API_URL` (the Worker URL).
+**Vercel environment variables** (Project → Settings → Environment Variables):
 
-Local Worker dev: copy `worker/.dev.vars.example` to `worker/.dev.vars`.
+| Name | Value | Notes |
+|---|---|---|
+| `GEMINI_API_KEY` | your Gemini key (paid tier) | mark **Sensitive** |
+| `INVITE_CODE` | the code friends and family type in | mark **Sensitive** |
+| `GEMINI_MODEL` | `gemini-3.8-flash` | optional (this is the default); change models in one place |
+| `GEMINI_TEMPERATURE` | `0.2` | optional |
+| `SCANS_PER_DAY` | `20` | optional |
+| `MOCK` | `0` (or `1` for the saved samples) | optional |
+| `KV_REST_API_URL`, `KV_REST_API_TOKEN` | added automatically | when you connect **Upstash for Redis** from the Vercel Marketplace (listing cache, rate limits, layer counters). `UPSTASH_REDIS_REST_URL`/`_TOKEN` also work |
+
+Without Redis the backend falls back to an in-memory store (fine locally, not in production: limits reset per instance). `/health` reports `"store": "redis"` or `"memory"`.
+
+**App:** `EXPO_PUBLIC_API_URL` = the Vercel URL (e.g. `https://skinfix.vercel.app`). Put it in `app/.env`, and in EAS environment variables for builds.
+
+**Local backend dev:** copy `backend/.env.example` to `backend/.env.local`, then `npm run dev`.
+
+**Vercel limits that matter here:** request bodies max 4.5 MB (the WebView pages are capped at 4M chars total, and the photo is ~200–300 KB). Function time is set to 60 s in the build output (`maxDuration`).
 
 ## Commands
 
 ```bash
-cd worker && npm i && npx wrangler dev          # Worker locally (MOCK from .dev.vars)
-cd worker && npm test                            # parser, filter, products pipeline, routes
-cd worker && npm run check-analyze -- <selfie>   # Phase 2 consistency checks (needs GEMINI_API_KEY)
+cd backend && npm i && npm run dev              # backend on :8787 (reads backend/.env.local)
+cd backend && npm test                           # parser, filter, products pipeline, routes, store
+cd backend && npm run build                      # same build Vercel runs → .vercel/output
+cd backend && npm run check-analyze -- <selfie>  # Phase 2 consistency checks (needs GEMINI_API_KEY)
 cd shared && npm i && npm test                   # safety rules, Skin Map zones, camera guide
 cd app && npx expo run:android                   # dev build on a connected phone
 cd app && eas build -p android --profile preview # APK
@@ -88,4 +103,4 @@ cd app && eas update --channel preview           # JS-only fix to installed apps
 
 ## Privacy
 
-There is no request logging middleware. Errors log a message only, never a body. Photos are forwarded to Gemini and dropped. Invite code plus device id are required on every endpoint except `/health`, with a per-device daily scan limit in KV.
+There is no request logging middleware. Errors log a message only, never a body. Photos are forwarded to Gemini and dropped. Invite code plus device id are required on every endpoint except `/health`, with a per-device daily scan limit in Redis (atomic counter). Vercel's runtime logs only hold what the code prints: no bodies.

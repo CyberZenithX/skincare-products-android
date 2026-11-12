@@ -9,8 +9,8 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "lib": ["ES2022", "WebWorker"],
-    "types": ["@cloudflare/workers-types"],
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
     "paths": { "@skinfix/shared": ["../shared/src/index.ts"] }
   },
   "include": ["src", "test", "mocks"]

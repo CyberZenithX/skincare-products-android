@@ -1,5 +1,5 @@
 // "I'm not sure" skin helper. Stateless backend: every call sends the turns so far.
-// The Worker enforces the 3-clue cap; this sheet never forces a guess on the user.
+// The backend enforces the 3-clue cap; this sheet never forces a guess on the user.
 
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';

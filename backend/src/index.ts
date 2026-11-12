@@ -33,7 +33,7 @@ const fail = (c: Ctx, status: 400 | 401 | 429 | 502 | 504 | 500, error: ErrorRes
 
 // No request logging middleware on purpose: bodies hold face photos.
 
-app.get('/health', (c) => c.json({ ok: true, mock: c.env.MOCK === '1', model: c.env.GEMINI_MODEL }));
+app.get('/health', (c) => c.json({ ok: true, mock: c.env.MOCK === '1', model: c.env.GEMINI_MODEL, store: c.env.store.kind }));
 
 // Every other endpoint needs the invite code and a device id.
 app.use('*', async (c, next) => {
@@ -124,7 +124,7 @@ app.post('/products', async (c) => {
     if (v === 'blocked' && !req.raw_pages)
       return c.json(ProductsResponse.parse({ status: 'blocked', queries: [req.product.noon_query, req.product.backup_query], search_url: url }));
     if (v === 'link' || req.link_fallback) return c.json(ProductsResponse.parse({ status: 'link', search_url: url }));
-    return c.json(ProductsResponse.parse({ ...mockProducts, search_url: url, layer: req.raw_pages ? 'webview' : 'worker' }));
+    return c.json(ProductsResponse.parse({ ...mockProducts, search_url: url, layer: req.raw_pages ? 'webview' : 'server' }));
   }
   try {
     return c.json(await products(c.env, req));
@@ -134,7 +134,7 @@ app.post('/products', async (c) => {
   }
 });
 
-// Phase 1 check: does noon answer this Worker? Reports counts only, never page bodies.
+// Phase 1 check: does noon answer this backend? Reports counts only, never page bodies.
 app.get('/probe', async (c) => {
   const q = c.req.query('q') ?? 'niacinamide serum';
   const started = Date.now();

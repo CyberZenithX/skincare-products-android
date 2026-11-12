@@ -14,5 +14,6 @@
     "vitest": "^5.1.0"
   },
   "private": true,
-  "types": "src/index.ts"
+  "types": "src/index.ts",
+  "type": "module"
 }

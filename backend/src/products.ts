@@ -71,13 +71,13 @@ export async function products(
 
   const key = await cacheKey(req);
   if (!req.raw_pages) {
-    const hit = await env.KV.get(key, 'json');
+    const hit = await env.store.getJson<Extract<ProductsResponse, { status: 'ok' }>>(key);
     if (hit) return { ...(hit as Extract<ProductsResponse, { status: 'ok' }>), cached: true };
   }
 
   let main: PageResult;
   let backup: PageResult | null = null;
-  let layer: 'worker' | 'webview';
+  let layer: 'server' | 'webview';
 
   if (req.raw_pages) {
     // Layer 2: same parser, same filter, same pick.
@@ -93,7 +93,7 @@ export async function products(
     }
   } else {
     // Layer 1: one request per query, no loops, never product pages.
-    layer = 'worker';
+    layer = 'server';
     main = await safeFetch(fetchPage, p.noon_query);
     if (main.blocked) {
       await bumpLayer(env, 'blocked');
@@ -103,7 +103,7 @@ export async function products(
 
   const opts = { budget: req.budget_aed, avoidTerms: req.avoid_terms, category: p.category };
   let built = buildCandidates(main.items, backup?.items ?? null, opts);
-  if (built.candidates.length < 3 && layer === 'worker' && p.backup_query.trim().toLowerCase() !== p.noon_query.trim().toLowerCase()) {
+  if (built.candidates.length < 3 && layer === 'server' && p.backup_query.trim().toLowerCase() !== p.noon_query.trim().toLowerCase()) {
     backup = await safeFetch(fetchPage, p.backup_query);
     built = buildCandidates(main.items, backup.blocked ? null : backup.items, opts);
   }
@@ -116,7 +116,7 @@ export async function products(
     listings,
     search_url: searchUrl,
   };
-  if (listings.length) await env.KV.put(key, JSON.stringify(result), { expirationTtl: CACHE_TTL });
+  if (listings.length) await env.store.setJson(key, result, CACHE_TTL);
   await bumpLayer(env, layer);
   return result;
 }
