@@ -28,16 +28,25 @@ export function checkProfile(p: SkinProfile): string | null {
   return null;
 }
 
+/**
+ * Time budget inside Vercel's 60 s function limit: the analysis (retry included)
+ * must be done by 40 s; the Arabic translation then gets what's left up to 55 s.
+ */
+export const ANALYSIS_BUDGET_MS = 40_000;
+export const REQUEST_BUDGET_MS = 55_000;
+
 export async function analyze(env: Env, req: AnalyzeRequest): Promise<AnalyzeResponse> {
+  const started = Date.now();
   // Identical prompt for every language: the judgment can't depend on it.
   const raw = await generateJson(env, {
     system: ANALYZE_SYSTEM,
     parts: [imagePart(req.image_base64), { text: describeAnswers(req.answers) }],
     schema: SkinProfile,
     check: checkProfile,
-    timeoutMs: 25_000,
+    timeoutMs: 35_000,
+    deadline: started + ANALYSIS_BUDGET_MS,
   });
-  return finish(env, raw, req.answers, req.language);
+  return finish(env, raw, req.answers, req.language, started + REQUEST_BUDGET_MS);
 }
 
 export async function finish(
@@ -45,6 +54,7 @@ export async function finish(
   raw: SkinProfile,
   answers: AnalyzeRequest['answers'],
   language: Language,
+  deadline = Date.now() + 15_000,
 ): Promise<AnalyzeResponse> {
   const { profile, adjustments, rules } = enforceProfile(raw, answers);
   const display = profile.products.map((p) => ({
@@ -62,7 +72,7 @@ export async function finish(
   };
   if (language === 'en' || !env) return base;
   try {
-    return await translate(env, base);
+    return await translate(env, base, deadline);
   } catch {
     // Better to show correct English than nothing: the app labels it.
     return base;
@@ -96,7 +106,7 @@ const TextBundle = z.object({
 });
 type TextBundle = z.infer<typeof TextBundle>;
 
-async function translate(env: Env, res: AnalyzeResponse): Promise<AnalyzeResponse> {
+async function translate(env: Env, res: AnalyzeResponse, deadline: number): Promise<AnalyzeResponse> {
   const p = res.profile;
   const src: TextBundle = {
     photo_tip: p.photo_quality.tip,
@@ -133,7 +143,9 @@ async function translate(env: Env, res: AnalyzeResponse): Promise<AnalyzeRespons
     schema: TextBundle,
     check: shapeOk,
     temperature: 0,
+    thinking: 'minimal', // plain translation: no reasoning needed, and it must be quick
     timeoutMs: 15_000,
+    deadline,
   });
 
   const out: AnalyzeResponse = structuredClone(res);

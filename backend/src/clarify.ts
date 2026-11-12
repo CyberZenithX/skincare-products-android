@@ -58,7 +58,8 @@ export async function clarify(env: Env, req: ClarifyRequest): Promise<ClarifyRes
       if (r.answer && r.answer.also_possible === r.answer.value) return 'also_possible must differ from value';
       return null;
     },
-    timeoutMs: 15_000,
+    timeoutMs: 25_000,
+    deadline: Date.now() + 50_000,
   });
 
   return {

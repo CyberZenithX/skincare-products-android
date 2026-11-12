@@ -67,6 +67,7 @@ curl -H "x-invite-code: $CODE" -H "x-device-id: probe-0001" "https://<your-proje
 | `INVITE_CODE` | the code friends and family type in | mark **Sensitive** |
 | `GEMINI_MODEL` | `gemini-3.8-flash` | optional (this is the default); change models in one place |
 | `GEMINI_TEMPERATURE` | `0.2` | optional |
+| `GEMINI_THINKING` | `low` | optional: `minimal`, `low`, `medium`, `high` or `default`. How long the model thinks before answering; `/diag` compares them |
 | `SCANS_PER_DAY` | `20` | optional |
 | `MOCK` | `0` (or `1` for the saved samples) | optional |
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | added automatically | when you connect **Upstash for Redis** from the Vercel Marketplace (listing cache, rate limits, layer counters). `UPSTASH_REDIS_REST_URL`/`_TOKEN` also work |
