@@ -65,7 +65,7 @@ export default function History() {
 
   return (
     <Screen>
-      {header(t('history.title'), () => router.back())}
+      {header(t('history.title'), () => (router.canGoBack() ? router.back() : router.replace('/welcome')))}
       <FlatList
         data={items ?? []}
         keyExtractor={(e) => e.id}

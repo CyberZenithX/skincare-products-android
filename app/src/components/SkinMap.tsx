@@ -307,7 +307,7 @@ export function ScanAnimation({ geometry: g, photo, width }: { geometry: SkinMap
     const loop = () => {
       if (!alive) return;
       t.value = 0;
-      t.value = withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.quad) }, () => undefined);
+      t.value = withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.quad) });
       setTimeout(loop, 3000);
     };
     loop();

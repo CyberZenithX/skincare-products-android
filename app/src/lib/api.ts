@@ -48,6 +48,13 @@ async function post<T>(
 ): Promise<T> {
   const [invite, device] = await Promise.all([inviteOverride ?? getInvite(), getDeviceId()]);
   let res: Response;
+  // AbortSignal.timeout isn't guaranteed in React Native, so time out by hand.
+  const ctrl = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    ctrl.abort();
+  }, timeoutMs);
   try {
     res = await fetch(`${BASE}${path}`, {
       method: 'POST',
@@ -57,17 +64,19 @@ async function post<T>(
         [HEADERS.device]: device,
       },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: ctrl.signal,
     });
-  } catch (e) {
-    const name = (e as Error)?.name;
-    throw new ApiError(name === 'TimeoutError' || name === 'AbortError' ? 'timeout' : 'network');
+  } catch {
+    clearTimeout(timer);
+    throw new ApiError(timedOut ? 'timeout' : 'network');
   }
   let json: unknown;
   try {
     json = await res.json();
   } catch {
-    throw new ApiError('server');
+    throw new ApiError(timedOut ? 'timeout' : 'server');
+  } finally {
+    clearTimeout(timer);
   }
   if (!res.ok) {
     const err = ErrorResponse.safeParse(json);

@@ -27,7 +27,7 @@ export default function Settings() {
   return (
     <Screen>
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: space.md }}>
-        <IconButton label={t('common.back')} onPress={() => router.back()}>
+        <IconButton label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/welcome'))}>
           <Icon name="back" />
         </IconButton>
         <Text variant="title" weight="semibold">{t('settings.title')}</Text>

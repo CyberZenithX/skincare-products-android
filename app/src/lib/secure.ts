@@ -10,9 +10,8 @@ export const setInvite = (code: string) => SecureStore.setItemAsync(INVITE, code
 export async function getDeviceId(): Promise<string> {
   const existing = await SecureStore.getItemAsync(DEVICE);
   if (existing) return existing;
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  const id = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  // Only used for the per-device daily limit, so Math.random is enough (Hermes has no WebCrypto by default).
+  const id = `${Date.now().toString(36)}-${Array.from({ length: 4 }, () => Math.random().toString(36).slice(2, 10)).join('')}`;
   await SecureStore.setItemAsync(DEVICE, id);
   return id;
 }

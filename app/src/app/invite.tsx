@@ -23,7 +23,8 @@ export default function Invite() {
     try {
       await api.verify(code);
       await setInvite(code);
-      router.replace(router.canGoBack() ? '/settings' : '/welcome');
+      if (router.canGoBack()) router.back(); // came from Settings → Change
+      else router.replace('/welcome');
     } catch (e) {
       setError(e instanceof ApiError && e.kind === 'unauthorized' ? t('invite.invalid') : t(errorKey(e)));
     } finally {

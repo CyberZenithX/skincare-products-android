@@ -128,6 +128,7 @@ export interface Draft {
 
 export async function saveDraft(route: string) {
   const s = state;
+  if (s.result) return; // scan already finished: nothing to restore
   if (!s.photo && s.step === 0) return; // nothing in progress
   const d: Draft = { route, photo: s.photo, geometry: s.geometry, answers: s.answers, step: s.step };
   await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(d));
