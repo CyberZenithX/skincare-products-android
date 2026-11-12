@@ -9,21 +9,24 @@ import { noonSearchUrl } from '@skinfix/shared';
 
 const TIMEOUT_MS = 10_000;
 
-// Runs inside noon's page. Prefers __NEXT_DATA__, then app-router flight
-// scripts (re-wrapped so the parser sees the same shape), then the whole HTML.
+// Runs inside noon's page and sends back only what parseNoonSearch reads, so the
+// upload is a few KB instead of the whole page:
+//   1. schema.org JSON-LD blocks + noon's productBox cards (what noon serves as of 2026-11)
+//   2. Next.js data (__NEXT_DATA__ / flight scripts), in case noon goes back to it
+//   3. the whole HTML, as a last resort
 const GRAB = `(function(){
+  function outer(list){ var a=[]; for (var i=0;i<list.length;i++) a.push(list[i].outerHTML); return a.join('\\n'); }
   function send(){
     try {
-      var nd = document.getElementById('__NEXT_DATA__');
-      var out = nd && nd.textContent ? '<script id="__NEXT_DATA__" type="application/json">' + nd.textContent + '</script>' : null;
-      if (!out) {
-        var parts = [];
-        var s = document.scripts;
-        for (var i = 0; i < s.length; i++) {
-          var t = s[i].textContent || '';
-          if (t.indexOf('self.__next_f') !== -1) parts.push('<script>' + t + '</script>');
-        }
-        if (parts.length) out = parts.join('');
+      var ld = document.querySelectorAll('script[type="application/ld+json"]');
+      var cards = document.querySelectorAll('a[id^="productBox-"]');
+      var out = (ld.length || cards.length) ? outer(ld) + '\\n' + outer(cards) : null;
+      if (!out || cards.length === 0) {
+        var nd = document.getElementById('__NEXT_DATA__');
+        if (nd && nd.textContent) out = (out || '') + '<script id="__NEXT_DATA__" type="application/json">' + nd.textContent + '</script>';
+        var parts = [], s = document.scripts;
+        for (var i = 0; i < s.length; i++) { var t = s[i].textContent || ''; if (t.indexOf('self.__next_f') !== -1) parts.push('<script>' + t + '</script>'); }
+        if (parts.length) out = (out || '') + parts.join('');
       }
       if (!out) out = document.documentElement.outerHTML;
       window.ReactNativeWebView.postMessage(out);

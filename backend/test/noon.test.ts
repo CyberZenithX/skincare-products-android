@@ -121,3 +121,96 @@ describe('listing filter', () => {
     expect(withBackup.candidates.map((i) => i.id)).toEqual(['N11111111A', 'N44444444A', 'N77777777A']);
   });
 });
+
+describe('real noon page (2026-11): JSON-LD + productBox cards', () => {
+  const real = parseNoonSearch(fx('real-product-page-niacinamide.html'));
+
+  it('reads the schema.org Product block exactly', () => {
+    expect(real.source).toBe('jsonld');
+    expect(real.challenge).toBe(false);
+    expect(real.items).toEqual([
+      {
+        id: 'N35159878A',
+        title: 'Niacinamide 10% Zinc 1% Face Serum 60ml',
+        brand: 'The Ordinary',
+        url: 'https://www.noon.com/uae-en/niacinamide-10-zinc-1-face-serum-60ml/N35159878A/p/',
+        image:
+          'https://f.nooncdn.com/p/fb889ec50f784103a85817c4c97eadd1|pzsku/ZB63AB6A5927414764443Z/45/1771237772/2da0ef53-254f-4f91-b9c7-90c66df9e665.jpg?width=400',
+        price_aed: 45,
+        original_price_aed: 113,
+        rating: 4.2,
+        rating_count: 815,
+        in_stock: true,
+      },
+    ]);
+    for (const it of real.items) expect(Listing.safeParse(it).success).toBe(true);
+  });
+
+  it('skips real cards that have no image inside them (never guesses one)', () => {
+    // The page also has 3 related-product cards (incl. a Z…Z SKU) with price + title but no image.
+    expect(real.items.map((i) => i.id)).not.toContain('N70099651V');
+  });
+
+  it('passes the hard filter at 50 AED and fails it at 40 AED', () => {
+    const opts = { avoidTerms: ['fragrance'], category: 'niacinamide serum' };
+    expect(dropReason(real.items[0]!, { ...opts, budget: 50 })).toBeNull();
+    expect(dropReason(real.items[0]!, { ...opts, budget: 40 })).toBe('over_budget');
+  });
+
+  // SYNTHETIC: the real card markup from the page above, with an image, rating and
+  // old price added the way a search-results card would carry them.
+  const card = (sku: string, slug: string, price: string, title: string, extra = '') =>
+    `<a id="productBox-${sku}" href="https://www.noon.com/uae-en/${slug}/${sku}/p/?o=abc" class="_productLink_1jroc_14">` +
+    `<div class="_imageCtr_9xk2"><img src="https://f.nooncdn.com/p/pzsku/${sku}/45/1/x.jpg?width=800" alt="${title}"></div>` +
+    `<div class="_priceCtr_1jroc_36"><div class="_container_1kuur_1"><div class="_sellingPrice_1kuur_11">` +
+    `<span class="_currency_1kuur_22 _isCurrencySymbol_1kuur_19"></span><strong class="_productPrice_1kuur_26">${price}</strong>` +
+    `</div>${extra}</div></div><p class="_productTitle_1jroc_23">${title}</p></a>`;
+
+  it('reads search-style cards in page order, with optional rating and old price', () => {
+    const html =
+      card('N70099651V', 'rice-toner', '69.90', 'Anua Rice 70 Glow Milky Toner 250ml', '<span class="_oldPrice_1kuur_30">1,099.00</span><div class="_rating_77x_1">4.6</div><span>(2.3K)</span>') +
+      card('Z8E6F1415BFF0A8DC3C94Z', 'niacinamide-serum', '29', 'Niacinamide Serum 30ml');
+    const r = parseNoonSearch(html);
+    expect(r.source).toBe('cards');
+    expect(r.items.map((i) => [i.id, i.price_aed, i.original_price_aed, i.rating, i.rating_count])).toEqual([
+      ['N70099651V', 69.9, 1099, 4.6, 2300],
+      ['Z8E6F1415BFF0A8DC3C94Z', 29, null, null, null],
+    ]);
+    expect(r.items[0]!.image).toBe('https://f.nooncdn.com/p/pzsku/N70099651V/45/1/x.jpg?width=400');
+    expect(r.items[1]!.url).toBe('https://www.noon.com/uae-en/niacinamide-serum/Z8E6F1415BFF0A8DC3C94Z/p/?o=abc');
+  });
+
+  it('prefers JSON-LD fields but keeps the cards’ page order', () => {
+    const ld = fx('real-product-page-niacinamide.html').match(/<script[^>]*ld\+json[^>]*>[^<]*"@type":"Product"[\s\S]*?<\/script>/)![0];
+    const html = ld + card('N70099651V', 'rice-toner', '69.90', 'Anua Rice Toner') + card('N35159878A', 'niacinamide-10-zinc-1-face-serum-60ml', '44.00', 'The Ordinary Niacinamide');
+    const r = parseNoonSearch(html);
+    expect(r.items.map((i) => i.id)).toEqual(['N70099651V', 'N35159878A']);
+    expect(r.items[1]!.price_aed).toBe(45); // JSON-LD wins over the card
+    expect(r.items[1]!.rating_count).toBe(815);
+  });
+
+  it('reads an ItemList, skips other currencies, maps stock and rating scale', () => {
+    const p = (sku: string, extra: object) => ({
+      '@type': 'Product',
+      sku,
+      name: `Serum ${sku}`,
+      image: { '@type': 'ImageObject', url: `https://f.nooncdn.com/p/${sku}.jpg` },
+      offers: { '@type': 'Offer', url: `https://www.noon.com/uae-en/serum/${sku}/p/`, price: '25.50', priceCurrency: 'AED', availability: 'https://schema.org/InStock' },
+      ...extra,
+    });
+    const list = {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, item: p('N11111111A', { aggregateRating: { ratingValue: 9, bestRating: 10, reviewCount: 40 } }) },
+        { '@type': 'ListItem', position: 2, item: p('N22222222A', { offers: { price: 20, priceCurrency: 'SAR', url: 'https://www.noon.com/saudi-en/x/N22222222A/p/' } }) },
+        { '@type': 'ListItem', position: 3, item: p('N33333333A', { offers: { price: 20, priceCurrency: 'AED', url: 'https://www.noon.com/uae-en/x/N33333333A/p/', availability: 'https://schema.org/OutOfStock' } }) },
+      ],
+    };
+    const r = parseNoonSearch(`<script type="application/ld+json">${JSON.stringify(list)}</script>`);
+    expect(r.items.map((i) => [i.id, i.price_aed, i.rating, i.in_stock])).toEqual([
+      ['N11111111A', 25.5, 4.5, true],
+      ['N33333333A', 20, null, false],
+    ]);
+  });
+});
