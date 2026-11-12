@@ -11,6 +11,8 @@ export interface Env {
   MOCK?: string;
   /** Sampling temperature for the analysis calls (default 0.2). */
   GEMINI_TEMPERATURE?: string;
+  /** How much the model thinks before answering: minimal | low | medium | high | default (default: low). */
+  GEMINI_THINKING?: string;
   /** Scans per device per day (default 20). */
   SCANS_PER_DAY?: string;
   /** Listing cache, rate-limit counters, layer counters. */
@@ -26,6 +28,7 @@ export function envFromProcess(e: NodeJS.ProcessEnv = process.env): Env {
     GEMINI_MODEL: e.GEMINI_MODEL || DEFAULT_MODEL,
     MOCK: e.MOCK,
     GEMINI_TEMPERATURE: e.GEMINI_TEMPERATURE,
+    GEMINI_THINKING: e.GEMINI_THINKING,
     SCANS_PER_DAY: e.SCANS_PER_DAY,
     store: storeFromEnv(e),
   };

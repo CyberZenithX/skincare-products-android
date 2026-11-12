@@ -87,7 +87,7 @@ app.post('/analyze', async (c) => {
     return c.json(await finish(null, raw, req.answers, 'en'));
   }
   try {
-    return c.json(await analyze(c.env, req));
+    return c.json(await analyze(c.env, req, { debug: c.req.query('debug') === '1' }));
   } catch (e) {
     return aiFail(c, e);
   }
@@ -162,6 +162,12 @@ app.get('/probe', async (c) => {
 
 // Why do Gemini calls fail? Three tiny test calls; see src/diag.ts.
 app.get('/diag', async (c) => c.json(await diagnose(c.env)));
+app.post('/diag', async (c) => {
+  const body = (await c.req.json().catch(() => null)) as { image_base64?: unknown } | null;
+  const img = typeof body?.image_base64 === 'string' ? body.image_base64 : '';
+  if (!img.startsWith('/9j/') || img.length > 3_000_000) return fail(c, 400, 'bad_request', 'Send {"image_base64": "<JPEG as base64>"}.');
+  return c.json(await diagnose(c.env, img));
+});
 
 app.notFound((c) => fail(c, 400, 'bad_request', 'Unknown endpoint.'));
 app.onError((e, c) => aiFail(c, e));

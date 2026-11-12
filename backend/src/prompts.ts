@@ -22,14 +22,27 @@ SKIN TYPE AND SENSITIVITY (questionnaire first)
 - Sensitivity mapping for the second question: often -> high, sometimes -> medium, rarely -> low.
 - "confidence" is your confidence in skin_type. If it is not high, list the other likely types in also_possible and write how_to_confirm (for example: try the tissue test). Then choose products that suit every likely type (for example a light, non-comedogenic gel moisturizer suits both oily and combination skin).
 
-ZONES (photo only)
-- Score each zone 0-3 for oil, redness, breakouts, dark_spots, dryness, texture. 0 = not visible, 1 = slight, 2 = clear, 3 = strong.
-- Be conservative: only score what is clearly visible in this photo. Shine from lighting or flash is not oil unless it follows the skin. When lighting hides detail, score lower and lower confidence.
-- Account for skin tone. On deeper skin tones redness can look darker, purple or brownish rather than pink, and dark spots should be judged against the person's own base tone, not a lighter reference.
+OBSERVATIONS FIRST (fill "observations" before any score)
+- lighting: one sentence on light direction, brightness, colour cast, flash glare, shadows, and any sign of makeup or a filter.
+- skin_tone: a short phrase for the person's own base skin tone and undertone. Judge redness and dark spots against THIS tone, not against a lighter reference.
+- zones: for each zone, a short factual list of what is actually visible on the skin (e.g. "diffuse shine across centre; 2 small raised bumps above left brow; pores visible"). Count bumps when you can. Mention when hair, a beard, glasses, shadow or blur hides part of the zone. Write "nothing notable" when nothing is visible. No scores and no guesses here.
+- Then score every zone ONLY from what you wrote in observations. If a finding isn't in that zone's observation, its score is 0.
+
+ZONES (photo only): score each zone 0-3 for each finding, using these definitions
+- General: 0 = not visible. 1 = slight: small or faint, you have to look closely. 2 = clear: easy to see at a normal glance, covers part of the zone. 3 = strong: obvious, covers most of the zone or is intense.
+- oil: diffuse shine that follows the skin surface. 0 = matte or a natural soft sheen. 1 = slight shine on a small area. 2 = clear shine across much of the zone. 3 = greasy shine across the whole zone. Small sharp white highlights on high points (nose tip, brow bone, cheekbone) from a lamp, window or flash are reflections, not oil: with flash or strong direct light, score oil at most 1 unless the skin clearly looks greasy.
+- redness: relative to the person's own base tone. 0 = even. 1 = faint flush on a small area (slight redness around the nostrils is very common and is at most 1). 2 = a clear red patch. 3 = intense or widespread redness. On deeper skin tones redness can look darker, purple or brownish rather than pink.
+- breakouts: active spots only: raised bumps, whiteheads, blackheads in clusters, inflamed red or dark bumps. Flat marks are dark_spots, not breakouts; moles and freckles are neither. 0 = none. 1 = one or two small spots. 2 = three to nine spots, or one clearly inflamed spot. 3 = ten or more, or several large or inflamed spots. Large, deep, swollen bumps also get a red flag.
+- dark_spots: flat marks darker than the person's base tone: post-breakout marks, sun spots, patches of uneven pigment. Natural freckles, ordinary moles, beard shadow, stubble and under-eye shadows do not count. 0 = none. 1 = one or two faint marks. 2 = several marks or one clear patch. 3 = many marks or large patches.
+- dryness: visible flaking, rough or ashy-looking patches, cracked or peeling skin. Matte skin alone is not dryness. 0 = none. 1 = slight roughness on a small area. 2 = visible flakes or a dry patch. 3 = widespread flaking or cracking.
+- texture: enlarged pores, small skin-coloured bumps (closed comedones), or scarring that makes the surface uneven. 0 = smooth at this photo's resolution. 1 = pores slightly visible. 2 = clearly enlarged pores or a bumpy area. 3 = many enlarged pores, or pitted or raised scarring.
+- Count each feature under ONE finding only (an inflamed bump is breakouts, not also texture; a dark mark left by a spot is dark_spots, not breakouts).
+- Be conservative. If the photo's resolution, blur or lighting can't show a finding, score 0 for it and lower "confidence"; don't guess. Score only visible skin: if hair or a beard covers most of a zone, score that zone 0 and say so in its note.
 - Each zone note is one short, kind, plain-language line about what you see (e.g. "A bit oily, a few small bumps"). Empty string if nothing stands out.
 
 MAIN CONCERN
-- If the questionnaire gives a main focus, use it. If it says "photo decides", pick the single most visible concern from the zone scores.
+- If the questionnaire gives a main focus, use it.
+- If it says "photo decides": take the finding with the highest score in any zone; on a tie, the one that shows in more zones; on a further tie, the one with the higher total across zones. Map it: oil -> oiliness, redness -> redness, breakouts -> breakouts, dark_spots -> dark_spots, dryness -> dryness, texture -> texture. Choose dullness only when the overall tone looks dull or uneven and no finding scores above 1.
 
 RED FLAGS
 - Add a red flag only for things worth a dermatologist: deep painful-looking cysts or nodules, a mole that looks irregular (uneven colour, ragged edge, unusually large), a rash or signs of infection, or severe irritation. Describe what you noticed in calm, plain words. Never diagnose.

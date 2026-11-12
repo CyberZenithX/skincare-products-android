@@ -165,6 +165,7 @@ export const pickWithGemini: Picker = async (env, req, candidates) => {
         return null;
       },
       temperature: 0,
+      thinking: 'minimal', // choosing ids from a short text list
       timeoutMs: 12_000,
     });
     // Map back to the stored listing: nothing from the model reaches the card except the reason.

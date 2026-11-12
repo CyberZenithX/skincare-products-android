@@ -1,4 +1,4 @@
-import { GoogleGenAI, type Part } from '@google/genai';
+import { GoogleGenAI, ThinkingLevel, type Part, type ThinkingConfig } from '@google/genai';
 import { z } from '@skinfix/shared';
 import type { Env } from './env';
 
@@ -58,13 +58,35 @@ export function describeAiError(e: AiError) {
   return { kind: e.kind, status: e.status ?? null, detail: e.detail ?? e.message };
 }
 
+export type Thinking = 'minimal' | 'low' | 'medium' | 'high' | 'default';
+const THINKING: readonly Thinking[] = ['minimal', 'low', 'medium', 'high', 'default'];
+
+/** The thinking level from GEMINI_THINKING, or 'low'. */
+export function envThinking(env: Env): Thinking {
+  const v = (env.GEMINI_THINKING ?? '').trim().toLowerCase();
+  return (THINKING as readonly string[]).includes(v) ? (v as Thinking) : 'low';
+}
+
+/**
+ * Gemini 3+ models take a thinking level; 2.x models take a token budget.
+ * 'default' sends nothing and lets the model decide (slowest on Gemini 3).
+ */
+export function thinkingConfig(model: string, level: Thinking): ThinkingConfig | undefined {
+  if (level === 'default') return undefined;
+  if (/^gemini-2/.test(model)) {
+    const budget = { minimal: 0, low: 1024, medium: 4096, high: -1 }[level];
+    return { thinkingBudget: /pro/.test(model) && budget === 0 ? 128 : budget }; // 2.x Pro can't turn thinking off
+  }
+  return { thinkingLevel: { minimal: ThinkingLevel.MINIMAL, low: ThinkingLevel.LOW, medium: ThinkingLevel.MEDIUM, high: ThinkingLevel.HIGH }[level] };
+}
+
 /**
  * One raw generateContent call with our standard config. Returns the response
  * text or throws AiError carrying Gemini's status and error message.
  */
 export async function callGemini(
   env: Env,
-  opts: { system?: string; parts: Part[]; responseJsonSchema?: unknown; temperature?: number; timeoutMs?: number },
+  opts: { system?: string; parts: Part[]; responseJsonSchema?: unknown; temperature?: number; timeoutMs?: number; thinking?: Thinking },
 ): Promise<string> {
   const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
   try {
@@ -76,6 +98,10 @@ export async function callGemini(
         ...(opts.responseJsonSchema ? { responseMimeType: 'application/json', responseJsonSchema: opts.responseJsonSchema } : {}),
         temperature: opts.temperature ?? Number(env.GEMINI_TEMPERATURE ?? '0.2'),
         seed: 7,
+        ...(() => {
+          const t = thinkingConfig(env.GEMINI_MODEL, opts.thinking ?? envThinking(env));
+          return t ? { thinkingConfig: t } : {};
+        })(),
         abortSignal: AbortSignal.timeout(opts.timeoutMs ?? 25_000),
       },
     });
@@ -106,6 +132,13 @@ export interface JsonCall<T> {
   check?: (value: T) => string | null;
   timeoutMs?: number;
   temperature?: number;
+  /** Thinking level for this call (default: GEMINI_THINKING, else low). */
+  thinking?: Thinking;
+  /**
+   * Absolute time (Date.now() ms) the whole call, retry included, must finish by.
+   * Keeps the request inside Vercel's function time limit.
+   */
+  deadline?: number;
 }
 
 /**
@@ -120,12 +153,20 @@ export async function generateJson<T>(env: Env, call: JsonCall<T>): Promise<T> {
     const parts: Part[] = feedback
       ? [...call.parts, { text: `Your previous answer was rejected: ${feedback}. Return corrected JSON only.` }]
       : call.parts;
+    let timeoutMs = call.timeoutMs ?? 25_000;
+    if (call.deadline) {
+      const left = call.deadline - Date.now();
+      // Not enough time for a useful attempt: report it as a timeout, not a bad answer.
+      if (left < 5_000) throw new AiError('Gemini timed out', 'timeout', undefined, 'no time left for another attempt');
+      timeoutMs = Math.min(timeoutMs, left);
+    }
     const text = await callGemini(env, {
       system: call.system,
       parts,
       responseJsonSchema,
       temperature: call.temperature,
-      timeoutMs: call.timeoutMs,
+      timeoutMs,
+      thinking: call.thinking,
     });
 
     let parsed: unknown;

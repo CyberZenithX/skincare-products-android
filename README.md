@@ -67,6 +67,7 @@ curl -H "x-invite-code: $CODE" -H "x-device-id: probe-0001" "https://<your-proje
 | `INVITE_CODE` | the code friends and family type in | mark **Sensitive** |
 | `GEMINI_MODEL` | `gemini-3.8-flash` | optional (this is the default); change models in one place |
 | `GEMINI_TEMPERATURE` | `0.2` | optional |
+| `GEMINI_THINKING` | `low` | optional: `minimal`, `low`, `medium`, `high` or `default`. How long the model thinks before answering; `/diag` compares them |
 | `SCANS_PER_DAY` | `20` | optional |
 | `MOCK` | `0` (or `1` for the saved samples) | optional |
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | added automatically | when you connect **Upstash for Redis** from the Vercel Marketplace (listing cache, rate limits, layer counters). `UPSTASH_REDIS_REST_URL`/`_TOKEN` also work |
@@ -97,6 +98,7 @@ cd app && eas update --channel preview           # JS-only fix to installed apps
 - **Same judgment in English and Arabic.** The analysis prompt and inputs are byte-identical for both languages (answers are sent as option ids, and the language isn't in the prompt). Arabic text comes from a separate translation call over the free-text fields only. Enums, scores, queries, categories and ingredients are never translated in place: Arabic display names go in `product_display`.
 - **User answers override the photo, enforced in code.** Q1/Q2 answered by the user set skin type and sensitivity, and Q3 sets the main focus. `enforceProfile` in `/shared` applies this after Gemini, so a model slip can't change it.
 - **Safety rules are enforced twice** (prompt, then `/shared/src/safety.ts`). That covers avoided ingredients ("fragrance-free" and fatty alcohols are not false hits), pregnancy or "not sure" (no retinoids, no peels, no AHA >10% or BHA >2%), prescription medicine (gentle basics only, no actives) and red flags (no actives for a flagged main focus). Patch tests are forced for actives.
+- **Evidence before scores.** Gemini first writes what it can see (lighting, the person's base tone, and the plain facts per zone), then scores only from that, using fixed definitions for every level of every finding (`backend/src/prompts.ts`). The observations never reach users. `check-analyze` prints them (`/analyze?debug=1`) so you can see why each score was given.
 - **Gemini output is validated** with zod plus semantic checks. On failure it retries once with the problem fed back, then returns a clean error.
 - **Listings are never written by Gemini.** Gemini sees text-only candidates and returns ids. Ids not in the list are rejected, and the card is built from the stored listing. Gemini may return fewer than 3 if fewer truly fit: a wrong product is worse than a short list.
 - **The cache key** includes avoid terms, product type, ingredients and language as well as query and budget, so one user's filter can't leak into another user's results.

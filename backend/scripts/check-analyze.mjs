@@ -30,7 +30,7 @@ const answers = {
 
 async function analyze(language) {
   const t0 = Date.now();
-  const res = await fetch(`${API}/analyze`, {
+  const res = await fetch(`${API}/analyze?debug=1`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-invite-code': CODE, 'x-device-id': 'acceptance-check-01' },
     body: JSON.stringify({ image_base64, answers, language }),
@@ -38,7 +38,7 @@ async function analyze(language) {
   const ms = Date.now() - t0;
   const body = await res.json();
   if (!res.ok) throw new Error(`${res.status} ${JSON.stringify(body)}`);
-  return { ms, p: body.profile };
+  return { ms, p: body.profile, obs: body.debug_observations };
 }
 
 const ZONES = ['forehead', 'nose', 'left_cheek', 'right_cheek', 'chin'];
@@ -66,6 +66,16 @@ for (let i = 0; i < 3; i++) runs.push(await analyze('en'));
 runs.forEach((r, i) => check(`run ${i + 1} under 15 s`, r.ms < 15_000, `${r.ms} ms`));
 const base = enums(runs[0].p);
 console.log('run 1:', base);
+if (runs[0].obs) {
+  // What Gemini saw before scoring, next to the scores it gave: check these make sense.
+  const o = runs[0].obs;
+  console.log(`\nwhat Gemini saw (run 1)\n  lighting:  ${o.lighting}\n  skin tone: ${o.skin_tone}`);
+  for (const z of ZONES) {
+    const s = FIND.map((f) => runs[0].p.zones[z][f]).map((v, i) => (v ? `${FIND[i]} ${v}` : null)).filter(Boolean).join(', ') || 'all 0';
+    console.log(`  ${z.padEnd(11)} ${o.zones[z]}\n  ${' '.repeat(11)} → ${s}`);
+  }
+  console.log('');
+}
 for (let i = 1; i < 3; i++) {
   const e = enums(runs[i].p);
   check(`run ${i + 1} same skin type + main concern`, e.skin_type === base.skin_type && e.main_concern === base.main_concern, `${e.skin_type}/${e.main_concern}`);
