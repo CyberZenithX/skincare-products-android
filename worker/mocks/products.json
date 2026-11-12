@@ -1,0 +1,47 @@
+{
+ "status": "ok",
+ "layer": "worker",
+ "cached": false,
+ "listings": [
+  {
+   "id": "MOCK1",
+   "title": "[MOCK] Niacinamide 10% + Zinc 1% Serum 30ml",
+   "brand": "Mock Brand A",
+   "url": "https://www.noon.com/uae-en/search/?q=niacinamide%20serum",
+   "image": "https://placehold.co/400x400/png?text=Mock",
+   "price_aed": 39,
+   "original_price_aed": null,
+   "rating": 4.5,
+   "rating_count": 1200,
+   "in_stock": true,
+   "reason": "Mock listing for building the UI."
+  },
+  {
+   "id": "MOCK2",
+   "title": "[MOCK] Niacinamide 5% Serum 30ml",
+   "brand": "Mock Brand B",
+   "url": "https://www.noon.com/uae-en/search/?q=niacinamide%20serum",
+   "image": "https://placehold.co/400x400/png?text=Mock",
+   "price_aed": 45,
+   "original_price_aed": null,
+   "rating": 4.3,
+   "rating_count": 310,
+   "in_stock": true,
+   "reason": "Mock listing for building the UI."
+  },
+  {
+   "id": "MOCK3",
+   "title": "[MOCK] Niacinamide Clarifying Serum 30ml",
+   "brand": "Mock Brand C",
+   "url": "https://www.noon.com/uae-en/search/?q=niacinamide%20serum",
+   "image": "https://placehold.co/400x400/png?text=Mock",
+   "price_aed": 28.5,
+   "original_price_aed": null,
+   "rating": 4.1,
+   "rating_count": 95,
+   "in_stock": true,
+   "reason": "Mock listing for building the UI."
+  }
+ ],
+ "search_url": "https://www.noon.com/uae-en/search/?q=niacinamide%20serum"
+}

@@ -1,0 +1,95 @@
+{
+ "photo_quality": {
+  "usable": true,
+  "issue": "none",
+  "tip": ""
+ },
+ "skin_type": "combination",
+ "sensitivity": "medium",
+ "confidence": "medium",
+ "also_possible": [
+  "oily"
+ ],
+ "how_to_confirm": "Try the tissue test to check where your skin gets oily.",
+ "main_concern": "breakouts",
+ "summary": "Your forehead and nose look a bit oily, with a few small bumps on your forehead and chin. Your cheeks look calm and comfortable.",
+ "zones": {
+  "forehead": {
+   "oil": 2,
+   "redness": 0,
+   "breakouts": 2,
+   "dark_spots": 0,
+   "dryness": 0,
+   "texture": 1,
+   "note": "A bit oily, with a few small bumps."
+  },
+  "nose": {
+   "oil": 2,
+   "redness": 0,
+   "breakouts": 0,
+   "dark_spots": 0,
+   "dryness": 0,
+   "texture": 1,
+   "note": "Some shine and a few visible pores."
+  },
+  "left_cheek": {
+   "oil": 0,
+   "redness": 1,
+   "breakouts": 0,
+   "dark_spots": 0,
+   "dryness": 0,
+   "texture": 0,
+   "note": "A little redness near the nose."
+  },
+  "right_cheek": {
+   "oil": 0,
+   "redness": 0,
+   "breakouts": 0,
+   "dark_spots": 0,
+   "dryness": 0,
+   "texture": 0,
+   "note": ""
+  },
+  "chin": {
+   "oil": 0,
+   "redness": 0,
+   "breakouts": 1,
+   "dark_spots": 1,
+   "dryness": 0,
+   "texture": 0,
+   "note": "One or two small bumps and a faint mark."
+  }
+ },
+ "red_flags": [],
+ "products": [
+  {
+   "category": "niacinamide serum",
+   "why": "Niacinamide helps calm breakouts and balance shine without drying your skin.",
+   "key_ingredients": [
+    "niacinamide 5%",
+    "zinc PCA"
+   ],
+   "avoid_ingredients": [
+    "fragrance"
+   ],
+   "how_to_use": "Night, every day, 2-3 drops after cleansing.",
+   "patch_test": false,
+   "noon_query": "niacinamide serum",
+   "backup_query": "face serum oily skin"
+  },
+  {
+   "category": "salicylic acid gel cleanser",
+   "why": "A gentle salicylic acid wash helps clear pores where breakouts start.",
+   "key_ingredients": [
+    "salicylic acid 0.5%"
+   ],
+   "avoid_ingredients": [
+    "fragrance"
+   ],
+   "how_to_use": "Evening, start every other day, then daily if your skin is happy.",
+   "patch_test": true,
+   "noon_query": "salicylic acid cleanser",
+   "backup_query": "gel cleanser oily skin"
+  }
+ ]
+}

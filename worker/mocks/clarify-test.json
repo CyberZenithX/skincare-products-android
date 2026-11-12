@@ -1,0 +1,17 @@
+{
+ "status": "suggest_test",
+ "clue_number": 3,
+ "message": "Your answers point two ways, so a quick test will help.",
+ "options": [],
+ "test": {
+  "name": "Tissue test",
+  "steps": [
+   "Wash with a gentle cleanser and pat dry.",
+   "Wait 1 hour with nothing on your skin.",
+   "Press a clean tissue on your forehead, nose and each cheek.",
+   "See where the tissue picks up oil."
+  ],
+  "wait_minutes": 60
+ },
+ "answer": null
+}

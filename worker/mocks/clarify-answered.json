@@ -1,0 +1,14 @@
+{
+ "status": "answered",
+ "clue_number": 4,
+ "message": "Your skin is probably combination.",
+ "options": [],
+ "test": null,
+ "answer": {
+  "value": "shiny_tzone",
+  "confidence": "medium",
+  "also_possible": "shiny_all",
+  "why": "Your nose and forehead get shiny but your cheeks stay comfortable.",
+  "what_would_change_it": "If your cheeks also get shiny by the afternoon, it is more likely oily."
+ }
+}

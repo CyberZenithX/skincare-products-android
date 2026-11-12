@@ -1,0 +1,63 @@
+{
+ "photo_quality": {
+  "usable": false,
+  "issue": "too_dark",
+  "tip": "Face a window with daylight and try again."
+ },
+ "skin_type": "combination",
+ "sensitivity": "medium",
+ "confidence": "medium",
+ "also_possible": [],
+ "how_to_confirm": "",
+ "main_concern": "breakouts",
+ "summary": "",
+ "zones": {
+  "forehead": {
+   "oil": 0,
+   "redness": 0,
+   "breakouts": 0,
+   "dark_spots": 0,
+   "dryness": 0,
+   "texture": 0,
+   "note": ""
+  },
+  "nose": {
+   "oil": 0,
+   "redness": 0,
+   "breakouts": 0,
+   "dark_spots": 0,
+   "dryness": 0,
+   "texture": 0,
+   "note": ""
+  },
+  "left_cheek": {
+   "oil": 0,
+   "redness": 0,
+   "breakouts": 0,
+   "dark_spots": 0,
+   "dryness": 0,
+   "texture": 0,
+   "note": ""
+  },
+  "right_cheek": {
+   "oil": 0,
+   "redness": 0,
+   "breakouts": 0,
+   "dark_spots": 0,
+   "dryness": 0,
+   "texture": 0,
+   "note": ""
+  },
+  "chin": {
+   "oil": 0,
+   "redness": 0,
+   "breakouts": 0,
+   "dark_spots": 0,
+   "dryness": 0,
+   "texture": 0,
+   "note": ""
+  }
+ },
+ "red_flags": [],
+ "products": []
+}

@@ -1,0 +1,12 @@
+{
+ "status": "asking",
+ "clue_number": 1,
+ "message": "We need to figure out how much oil your skin makes. Does your sunscreen or makeup slide off by the afternoon?",
+ "options": [
+  "Yes, most days",
+  "Sometimes",
+  "No, it stays put"
+ ],
+ "test": null,
+ "answer": null
+}
