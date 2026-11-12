@@ -1,0 +1,270 @@
+{
+  "common": {
+    "continue": "Continue",
+    "back": "Back",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "close": "Close",
+    "done": "Done",
+    "notSure": "Not sure",
+    "settings": "Settings",
+    "language": "Language",
+    "english": "English",
+    "arabic": "العربية"
+  },
+  "invite": {
+    "title": "Welcome to Skin Fix",
+    "subtitle": "Enter your invite code to get started.",
+    "placeholder": "Invite code",
+    "button": "Continue",
+    "invalid": "That code didn't work. Check it and try again.",
+    "checking": "Checking…"
+  },
+  "welcome": {
+    "tagline": "Scan your face, answer 5 quick questions, and get the 1–2 products that fix your main focus.",
+    "step1": "Scan",
+    "step2": "Answer",
+    "step3": "Get your fix",
+    "privacy": "Your photo isn't saved anywhere.",
+    "start": "Start scan",
+    "history": "Past scans"
+  },
+  "tips": {
+    "title": "For the best scan",
+    "light": "Face a window with natural light",
+    "makeup": "No makeup or filters",
+    "hair": "Pull your hair back",
+    "gotIt": "Got it"
+  },
+  "camera": {
+    "noFace": "Fit your face in the oval",
+    "multiple": "Only one face, please",
+    "closer": "Move a bit closer",
+    "back": "Move back a little",
+    "center": "Center your face in the oval",
+    "straight": "Look straight at the camera",
+    "hold": "Hold still…",
+    "manual": "Take photo",
+    "gallery": "Pick from gallery",
+    "permissionTitle": "Camera access",
+    "permissionBody": "Skin Fix needs your camera to scan your face. The photo stays on your phone until you start the analysis.",
+    "permissionButton": "Allow camera",
+    "noFaceOnPhoto": "We couldn't find your face clearly in that photo. Try again facing the camera.",
+    "error": "The camera stopped. Try again."
+  },
+  "check": {
+    "title": "Does this look clear?",
+    "use": "Use this",
+    "retake": "Retake",
+    "tooDark": "This photo looks too dark. Face a window and try again.",
+    "tooBright": "This photo looks too bright. Step out of direct sun and try again.",
+    "checking": "Checking your photo…"
+  },
+  "questions": {
+    "progress": "Question {{current}} of {{total}}",
+    "q1": {
+      "title": "A few hours after washing your face, it feels…",
+      "tight_flaky": "Tight or flaky",
+      "comfortable": "Comfortable",
+      "shiny_tzone": "Shiny on forehead and nose only",
+      "shiny_all": "Shiny all over",
+      "unsure": "I'm not sure"
+    },
+    "q2": {
+      "title": "When you try a new product, your skin…",
+      "often": "Often stings, itches or goes red",
+      "sometimes": "Sometimes reacts",
+      "rarely": "Rarely reacts",
+      "unsure": "I'm not sure"
+    },
+    "q3": {
+      "title": "What bugs you most?",
+      "breakouts": "Breakouts",
+      "dark_spots": "Dark spots or marks",
+      "oiliness": "Shine and oil",
+      "dryness": "Dryness",
+      "redness": "Redness",
+      "dullness": "Dull or uneven tone",
+      "unsure": "Not sure, you tell me"
+    },
+    "q4": {
+      "title": "Anything you want to avoid?",
+      "hint": "Pick all that apply",
+      "fragrance": "Fragrance",
+      "alcohol": "Alcohol",
+      "nothing": "Nothing I know of",
+      "unsure": "Not sure",
+      "other": "Other",
+      "otherPlaceholder": "Type an ingredient"
+    },
+    "q5": {
+      "title": "Is any of this true right now?",
+      "hint": "Pick all that apply",
+      "reason": "So we don't suggest anything that isn't safe for you.",
+      "pregnant_breastfeeding": "Pregnant or breastfeeding",
+      "prescription": "Using prescription skin medicine",
+      "none": "None of these",
+      "unsure": "Not sure"
+    },
+    "budget": {
+      "title": "Your max budget per product",
+      "value": "{{value}} AED",
+      "hint": "We'll only show products at or under this price."
+    },
+    "next": "Next",
+    "analyze": "Analyze my skin"
+  },
+  "helper": {
+    "intro": "No worries, let's figure it out.",
+    "clue": "Clue {{n}} of {{total}}",
+    "thinking": "Thinking…",
+    "startTimer": "Start 1-hour timer",
+    "skip": "Skip for now",
+    "testDone": "I did the test",
+    "timerLeft": "{{min}} min left",
+    "testResultPrompt": "Where did the tissue pick up oil?",
+    "testResults": {
+      "none": "Nowhere",
+      "tzone": "Forehead and nose only",
+      "all": "Everywhere",
+      "patchy": "A little here and there"
+    },
+    "use": "Use this",
+    "leave": "Leave it as not sure",
+    "confidence": {
+      "low": "a rough guess",
+      "medium": "fairly sure",
+      "high": "quite sure"
+    },
+    "alsoPossible": "Could also be: {{value}}",
+    "whatWouldChange": "What would change it: {{text}}",
+    "error": "The helper couldn't load. You can leave this as not sure.",
+    "testName": "Tissue test",
+    "tissue1": "Wash with a gentle cleanser and pat dry.",
+    "tissue2": "Wait 1 hour with nothing on your skin.",
+    "tissue3": "Press a clean tissue on your forehead, nose and each cheek.",
+    "tissue4": "See where the tissue picks up oil."
+  },
+  "analyzing": {
+    "s1": "Mapping your face",
+    "s2": "Checking your T-zone",
+    "s3": "Looking at your cheeks",
+    "s4": "Picking your fix"
+  },
+  "results": {
+    "title": "Your Skin Map",
+    "map": "Map",
+    "photo": "Photo",
+    "tapZone": "Tap an area to see what we noticed.",
+    "nothingNoticed": "Nothing stands out here.",
+    "mostLikely": "Most likely {{type}}",
+    "notFullySure": "Not fully sure",
+    "recheck": "Re-check",
+    "recheckBody": "Do the tissue test, then scan again with your result to get a surer answer.",
+    "sensitivity": "{{level}} sensitivity",
+    "yourFix": "Your fix",
+    "mainFocus": "Your main focus",
+    "keyIngredients": "Key ingredients",
+    "avoid": "Avoid",
+    "howToUse": "How to use",
+    "patchTest": "Patch test first: try a small amount behind your ear or on your jaw for 2 days.",
+    "openOnNoon": "Open on noon",
+    "pricesNote": "Prices from noon at time of search.",
+    "seeMore": "See more on noon",
+    "noListings": "We couldn't find enough good matches under your budget.",
+    "listingsError": "Couldn't load products.",
+    "disclaimer": "This is general skincare guidance, not medical advice.",
+    "share": "Share",
+    "newScan": "New scan",
+    "dermTitle": "This is worth showing a dermatologist",
+    "dermBody": "Here's what we noticed:",
+    "dermNoProducts": "We won't suggest products for this until a doctor has had a look.",
+    "englishFallback": "Some text is shown in English.",
+    "noProducts": "No products for now: focus on gentle basics and check in with your doctor.",
+    "reviews": "{{count}} reviews",
+    "was": "was {{price}}",
+    "adjusted": "We removed a suggestion that didn't fit your answers."
+  },
+  "retake": {
+    "title": "Let's try that again",
+    "too_dark": "The photo is too dark to see your skin.",
+    "blurry": "The photo is a bit blurry.",
+    "makeup_or_filter": "Makeup or a filter is hiding your skin.",
+    "face_not_clear": "We couldn't see your face clearly.",
+    "other": "We couldn't read your skin from this photo.",
+    "button": "Retake photo"
+  },
+  "findings": {
+    "oil": "Oil",
+    "redness": "Redness",
+    "breakouts": "Breakouts",
+    "dark_spots": "Dark spots",
+    "dryness": "Dryness",
+    "texture": "Texture"
+  },
+  "levels": {
+    "1": "a little",
+    "2": "some",
+    "3": "a lot"
+  },
+  "zones": {
+    "forehead": "Forehead",
+    "nose": "Nose and T-zone",
+    "left_cheek": "Left cheek",
+    "right_cheek": "Right cheek",
+    "chin": "Chin"
+  },
+  "skinType": {
+    "oily": "Oily",
+    "dry": "Dry",
+    "combination": "Combination",
+    "normal": "Normal"
+  },
+  "sensitivityLevel": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High"
+  },
+  "concern": {
+    "breakouts": "Breakouts",
+    "dark_spots": "Dark spots and marks",
+    "oiliness": "Shine and oil",
+    "dryness": "Dryness",
+    "redness": "Redness",
+    "dullness": "Dull or uneven tone",
+    "texture": "Uneven texture"
+  },
+  "errors": {
+    "network": "No internet connection. Check your connection and try again.",
+    "timeout": "That took too long. Please try again.",
+    "server": "Something went wrong on our side. Please try again.",
+    "rateLimited": "You've reached today's scan limit. Try again tomorrow.",
+    "unauthorized": "Your invite code isn't working anymore. Check it in Settings.",
+    "answersKept": "Your answers are saved."
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "savePhotos": "Save photos in history",
+    "savePhotosHint": "Off: only the Skin Map and results are saved on this phone.",
+    "invite": "Invite code",
+    "change": "Change",
+    "clearHistory": "Clear history",
+    "clearConfirmTitle": "Clear all past scans?",
+    "clearConfirmBody": "This deletes every saved scan on this phone.",
+    "clear": "Clear",
+    "cleared": "History cleared",
+    "version": "Version {{version}}"
+  },
+  "history": {
+    "title": "Past scans",
+    "empty": "Your scans will show up here.",
+    "compare": "Compare with last scan",
+    "last": "Last scan",
+    "now": "This scan"
+  },
+  "share": {
+    "title": "My Skin Map",
+    "footer": "Made with Skin Fix"
+  }
+}

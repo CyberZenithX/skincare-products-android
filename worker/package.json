@@ -9,7 +9,7 @@
     "deploy": "wrangler deploy",
     "test": "vitest run",
     "typecheck": "tsc",
-    "noon-probe": "node scripts/noon-probe.mjs"
+    "check-analyze": "node scripts/check-analyze.mjs"
   },
   "dependencies": {
     "@google/genai": "^3.2.0",
