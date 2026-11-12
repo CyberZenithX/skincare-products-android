@@ -30,39 +30,46 @@ const IMAGE_BASE = 'https://f.nooncdn.com/p/';
 const CHALLENGE = /captcha|px-captcha|access denied|request unsuccessful|incapsula|challenge-platform|cf-chl|are you a robot|verify you are human|_abck|bot detection/i;
 
 export function parseNoonSearch(text: string): ParseResult {
-  const challenge = CHALLENGE.test(text.slice(0, 200_000)) && !/"sku"\s*:/.test(text);
+  const r = parseInner(text);
+  // A challenge only matters when nothing could be read. Google reCAPTCHA's badge
+  // and script are on every normal noon page, so they don't count.
+  const head = text.slice(0, 300_000).replace(/g?recaptcha/gi, '');
+  return { ...r, challenge: r.items.length === 0 && CHALLENGE.test(head) };
+}
+
+function parseInner(text: string): Omit<ParseResult, 'challenge'> {
 
   const nextData = extractNextData(text);
   if (nextData) {
     const items = collect(nextData);
-    if (items.length) return { items, source: 'next_data', challenge };
+    if (items.length) return { items, source: 'next_data' };
   }
 
   const flight = extractFlight(text);
   if (flight.length) {
     const items = dedupe(flight.flatMap(collect));
-    if (items.length) return { items, source: 'flight', challenge };
+    if (items.length) return { items, source: 'flight' };
   }
 
   const ld = parseJsonLd(text);
-  const cards = parseProductCards(text);
+  const cards = dedupe([...parsePlpCards(text, ldBuyable(text)), ...parseProductCards(text)]);
   if (ld.length || cards.length) {
-    return { items: mergeLdAndCards(ld, cards), source: ld.length ? 'jsonld' : 'cards', challenge };
+    return { items: mergeLdAndCards(ld, cards), source: ld.length ? 'jsonld' : 'cards' };
   }
 
   const trimmed = text.trim();
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
     try {
       const items = collect(JSON.parse(trimmed));
-      if (items.length) return { items, source: 'json', challenge };
+      if (items.length) return { items, source: 'json' };
     } catch {
       /* not JSON */
     }
   }
 
   const html = parseHtmlTiles(text);
-  if (html.length) return { items: html, source: 'html', challenge };
-  return { items: [], source: 'none', challenge };
+  if (html.length) return { items: html, source: 'html' };
+  return { items: [], source: 'none' };
 }
 
 // ---------------------------------------------------------------- extraction
@@ -330,6 +337,108 @@ function cardImage(u: string): string {
   } catch {
     return u;
   }
+}
+
+// ---------------------------------------------------------------- noon search-result (PLP) cards
+//
+// <div data-qa="plp-product-box"><a href=".../<slug>/<SKU>/p/?o=…&pcl=…">
+//   <img class="_productImage_…" src="https://f.nooncdn.com/p/…" …>            (several slides)
+//   <h2 data-qa="plp-product-box-name" title="Full title">…</h2>
+//   <div class="_textCtr_…">4.3</div> <div class="_countCtr_…">(<span>392</span>)</div>
+//   <div data-qa="plp-product-box-price"> <strong class="_amount_…">36</strong>
+//     <span class="_oldPrice_… strikeThrough">45</span> </div>
+// data-qa attributes are noon's own test hooks, so they're steadier than the
+// hashed class names. Used only with a title, price AND an https image.
+
+/** ItemList JSON-LD on search pages: url + isBuyable per result (no price). */
+function ldBuyable(html: string): Map<string, boolean> {
+  const map = new Map<string, boolean>();
+  const re = /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  for (const m of html.matchAll(re)) {
+    try {
+      const d = JSON.parse(m[1]!);
+      for (const el of isObj(d) && Array.isArray(d.itemListElement) ? d.itemListElement : []) {
+        const url = isObj(el) ? str(el.url) ?? (isObj(el.item) ? str(el.item.url) : null) : null;
+        const sku = url?.match(SKU_IN_URL)?.[1];
+        if (sku && isObj(el) && typeof el.isBuyable === 'boolean') map.set(sku, el.isBuyable);
+      }
+    } catch {
+      /* skip */
+    }
+  }
+  return map;
+}
+
+const attr = (tag: string, name: string) => tag.match(new RegExp(`\\b${name}=["']([^"']*)["']`, 'i'))?.[1] ?? null;
+
+/** noon link without tracking: keep the offer id (?o=) so the price matches the seller shown. */
+function cleanProductUrl(href: string): string | null {
+  try {
+    const u = new URL(decodeEntities(href), BASE);
+    if (!isNoon(u.toString())) return null;
+    const o = u.searchParams.get('o');
+    return `https://www.noon.com${u.pathname}${o ? `?o=${encodeURIComponent(o)}` : ''}`;
+  } catch {
+    return null;
+  }
+}
+
+function countText(t: string | null): number | null {
+  const m = t?.replace(/,/g, '').match(/(\d+(?:\.\d+)?)\s*([kK])?/);
+  return m ? Math.round(Number(m[1]) * (m[2] ? 1000 : 1)) : null;
+}
+
+function parsePlpCards(html: string, buyable: Map<string, boolean>): Listing[] {
+  const starts = [...html.matchAll(/data-qa=["']plp-product-box["']/g)].map((m) => m.index ?? 0);
+  const out: Listing[] = [];
+  starts.forEach((start, i) => {
+    const chunk = html.slice(start, Math.min(starts[i + 1] ?? html.length, start + 80_000));
+    const a = chunk.match(/<a\b[^>]*\bhref=["']([^"']*\/([A-Za-z0-9]{5,40})\/p\/?[^"']*)["'][^>]*>/i);
+    if (!a) return;
+    const url = cleanProductUrl(a[1]!);
+    const sku = a[2]!;
+    if (!url) return;
+
+    const nameTag = chunk.match(/<\w+\b[^>]*data-qa=["']plp-product-box-name["'][^>]*>([\s\S]*?)<\/\w+>/i);
+    const title =
+      (nameTag && (attr(nameTag[0], 'title') ?? nameTag[1]!.replace(/<[^>]+>/g, ' '))) ??
+      attr(chunk.match(/<img\b[^>]*class=["'][^"']*productImage[^"']*["'][^>]*>/i)?.[0] ?? '', 'alt')?.replace(/\s+-\s+Image\s+\d+\s*$/i, '') ??
+      null;
+
+    const pAt = chunk.search(/data-qa=["']plp-product-box-price["']/);
+    const priceRegion = pAt >= 0 ? chunk.slice(pAt, pAt + 3000) : '';
+    const price = priceText(classed(priceRegion, /_amount_|productPrice|sellingPrice/));
+    const was = priceText(classed(priceRegion, /_oldPrice_|strikeThrough|wasPrice/));
+
+    const imgs = [...chunk.matchAll(/<img\b[^>]*>/gi)]
+      .map((m) => m[0])
+      .filter((tag) => /productImage/i.test(attr(tag, 'class') ?? ''))
+      .flatMap((tag) => [attr(tag, 'src'), attr(tag, 'data-src'), ...(attr(tag, 'srcset') ?? '').split(',').map((x) => x.trim().split(/\s+/)[0] ?? '')])
+      .filter((u): u is string => !!u && /^https:\/\/[^/]*nooncdn\.com\//.test(u));
+    if (!title || price === null || !imgs[0]) return;
+
+    // Rating sits right after the title; don't wander into the price block.
+    const nAt = chunk.search(/data-qa=["']plp-product-box-name["']/);
+    const ratingRegion = nAt >= 0 ? chunk.slice(nAt, pAt > nAt ? pAt : nAt + 3000) : '';
+    const ratingTxt = classed(ratingRegion, /_textCtr_|ratingValue/);
+    const rating = ratingTxt ? Number(ratingTxt.match(/^\s*([0-5](?:\.\d)?)\s*$/)?.[1]) : NaN;
+    const hasRating = Number.isFinite(rating) && rating > 0;
+    const text = chunk.replace(/<[^>]+>/g, ' ');
+
+    out.push({
+      id: sku,
+      title: decodeEntities(title),
+      brand: null,
+      url,
+      image: cardImage(decodeEntities(imgs[0])),
+      price_aed: round2(price),
+      original_price_aed: was !== null && was > price ? round2(was) : null,
+      rating: hasRating ? rating : null,
+      rating_count: hasRating ? countText(classed(ratingRegion, /_countCtr_|ratingCount/)) : null,
+      in_stock: buyable.get(sku) ?? !/out of stock|sold out|نفدت الكمية|غير متوفر/i.test(text),
+    });
+  });
+  return dedupe(out);
 }
 
 // ---------------------------------------------------------------- noon productBox cards

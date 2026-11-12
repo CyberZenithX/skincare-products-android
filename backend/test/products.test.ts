@@ -110,3 +110,19 @@ describe('upload size', () => {
     expect(ProductsRequest.safeParse({ ...req, raw_pages: [{ query: 'a', page: big }] }).success).toBe(true);
   });
 });
+
+describe('real noon search page through the phone fallback', () => {
+  it('Layer 2: a real search page sent by the phone gives 3 real listings under budget', async () => {
+    const real = readFileSync(new URL('../../fixtures/noon/real-search-niacinamide-serum.html', import.meta.url), 'utf8')
+      .replace(/src="\.\/[^"]*_files\/([^"/]+\.jpg)"/g, 'src="https://f.nooncdn.com/p/pzsku/R/$1"');
+    const r = await products(makeEnv({ MOCK: '0' }), { ...req, raw_pages: [{ query: 'niacinamide serum', page: real }] }, { pick });
+    expect(r.status).toBe('ok');
+    if (r.status !== 'ok') return;
+    expect(r.layer).toBe('webview');
+    expect(r.listings.map((l) => [l.id, l.price_aed])).toEqual([
+      ['ZF79C566204EEFAFE7BC1Z', 36],
+      ['Z4495B81E5B8AD04E6048Z', 28],
+      ['ZCD92D54A6B9EDCDB50D2Z', 25.35],
+    ]);
+  });
+});

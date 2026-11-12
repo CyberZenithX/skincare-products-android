@@ -214,3 +214,67 @@ describe('real noon page (2026-11): JSON-LD + productBox cards', () => {
     ]);
   });
 });
+
+describe('real noon SEARCH page (2026-11): data-qa result cards', () => {
+  const raw = fx('real-search-niacinamide-serum.html');
+  // The browser's "Save page as" rewrote image src to local copies. On the live page (what the
+  // phone's WebView reads) they are nooncdn URLs, so restore that shape here, in the test only.
+  const live = raw.replace(/src="\.\/[^"]*_files\/([^"/]+\.jpg)"/g, 'src="https://f.nooncdn.com/p/pzsku/R/$1"');
+  const r = parseNoonSearch(live);
+
+  it('returns nothing from the saved file as-is (local images are never turned into fake URLs)', () => {
+    const asSaved = parseNoonSearch(raw);
+    expect(asSaved.items).toHaveLength(0);
+    expect(asSaved.challenge).toBe(false); // Google reCAPTCHA on every noon page is not a block
+  });
+
+  it('reads the result cards in noon order with exact values', () => {
+    expect(r.source).toBe('cards');
+    expect(r.items).toHaveLength(21);
+    // Same order as noon's own ItemList (positions 1-3).
+    expect(r.items.slice(0, 3).map((i) => i.id)).toEqual(['ZF79C566204EEFAFE7BC1Z', 'Z4495B81E5B8AD04E6048Z', 'ZCD92D54A6B9EDCDB50D2Z']);
+    expect(r.items[0]).toEqual({
+      id: 'ZF79C566204EEFAFE7BC1Z',
+      title:
+        'Minimalist 10% Niacinamide Face Serum with Zinc for Acne Marks, Blemishes, Pore Minimizing & Oil Control | Skin Clarifying Anti Acne Serum for Oily & Acne Prone Skin| Non-Sticky Matte Finish |30 ml',
+      brand: null,
+      url: 'https://www.noon.com/uae-en/minimalist-10-niacinamide-face-serum-with-zinc-for-acne-marks-blemishes-pore-minimizing-oil-control-skin-clarifying-anti-acne-serum-for-oily-acne-prone-skin-non-sticky-matte-finish-30-ml/ZF79C566204EEFAFE7BC1Z/p/?o=b7c5c8077e32e10c',
+      image: 'https://f.nooncdn.com/p/pzsku/R/794e724d-cbca-4306-9ecb-bd775bb1e6b6.jpg',
+      price_aed: 36,
+      original_price_aed: 45,
+      rating: 4.3,
+      rating_count: 392,
+      in_stock: true,
+    });
+    for (const it of r.items) expect(Listing.safeParse(it).success).toBe(true);
+  });
+
+  it('reads decimals, K counts, missing ratings and missing old prices', () => {
+    const by = new Map(r.items.map((i) => [i.id, i]));
+    expect(by.get('N23772548A')).toMatchObject({ price_aed: 32, original_price_aed: 55, rating: 3.9, rating_count: 17500 });
+    expect(by.get('ZCD92D54A6B9EDCDB50D2Z')).toMatchObject({ price_aed: 25.35, original_price_aed: 33.04 });
+    expect(by.get('ZE31424FFEE3225F146F9Z')).toMatchObject({ price_aed: 222.5, rating: null, rating_count: null });
+    expect(by.get('N47862022A')).toMatchObject({ price_aed: 30, original_price_aed: null });
+  });
+
+  it('drops tracking from links and skips a card with no product image', () => {
+    expect(r.items.every((i) => !i.url.includes('pcl'))).toBe(true);
+    expect(r.items.map((i) => i.id)).not.toContain('N52744175A');
+  });
+
+  it('hard filter at 50 AED: over-budget and a 3.2-star serum go, 13 stay in noon order', () => {
+    const kept = filterListings(r.items, { budget: 50, avoidTerms: ['fragrance'], category: 'niacinamide serum' });
+    expect(kept.map((i) => i.id)).toEqual([
+      'ZF79C566204EEFAFE7BC1Z', 'Z4495B81E5B8AD04E6048Z', 'ZCD92D54A6B9EDCDB50D2Z', 'N23772548A', 'ZA0F77921D318DB0D1182Z',
+      'N70094265V', 'ZBEAAC52E904A633C5101Z', 'Z738CBA4DA2829CDB9BB0Z', 'Z0F6E0FE1A2948005298DZ', 'N47862022A',
+      'ZE86E9DD9FE810E8AEB06Z', 'Z0C77BD3359E9C1DB01A9Z', 'ZD224FBD74B91319C238DZ',
+    ]);
+    expect(dropReason(r.items.find((i) => i.id === 'ZE45532424E36607C6136Z')!, { budget: 50, avoidTerms: [], category: 'serum' })).toBe('low_rating');
+  });
+
+  it('drops a retinol product for a cautious user (pregnant / not sure)', () => {
+    const retinol = r.items.find((i) => i.id === 'N70158017V')!; // "CeraVe Resurfacing Retinol Serum ... Niacinamide"
+    expect(dropReason(retinol, { budget: 150, avoidTerms: ['retinol'], category: 'niacinamide serum' })).toBe('avoided_ingredient');
+    expect(dropReason(retinol, { budget: 150, avoidTerms: [], category: 'niacinamide serum' })).toBeNull();
+  });
+});

@@ -10,22 +10,37 @@ import { noonSearchUrl } from '@skinfix/shared';
 const TIMEOUT_MS = 10_000;
 
 // Runs inside noon's page and sends back only what parseNoonSearch reads, so the
-// upload is a few KB instead of the whole page:
-//   1. schema.org JSON-LD blocks + noon's productBox cards (what noon serves as of 2026-11)
+// upload is small instead of the whole 2 MB page:
+//   1. schema.org JSON-LD + noon's result cards: search cards (data-qa="plp-product-box",
+//      first 40, stripped of icons, buttons, inline styles and the long tracking
+//      parameter) and productBox cards. This is what noon serves as of 2026-11.
 //   2. Next.js data (__NEXT_DATA__ / flight scripts), in case noon goes back to it
 //   3. the whole HTML, as a last resort
 const GRAB = `(function(){
-  function outer(list){ var a=[]; for (var i=0;i<list.length;i++) a.push(list[i].outerHTML); return a.join('\\n'); }
+  function outer(list, max){ var a=[]; for (var i=0;i<list.length && i<max;i++) a.push(list[i].outerHTML); return a.join('\\n'); }
+  function slim(el){
+    var c = el.cloneNode(true);
+    var junk = c.querySelectorAll('svg,button,style,script,noscript');
+    for (var i=0;i<junk.length;i++) junk[i].parentNode && junk[i].parentNode.removeChild(junk[i]);
+    var all = c.querySelectorAll('*'); for (var j=0;j<all.length;j++) all[j].removeAttribute('style');
+    var links = c.querySelectorAll('a[href]');
+    for (var k=0;k<links.length;k++) links[k].setAttribute('href', links[k].getAttribute('href').replace(/([?&])pcl=[^&]*&?/, '$1').replace(/[?&]$/, ''));
+    return c.outerHTML;
+  }
   function send(){
     try {
       var ld = document.querySelectorAll('script[type="application/ld+json"]');
-      var cards = document.querySelectorAll('a[id^="productBox-"]');
-      var out = (ld.length || cards.length) ? outer(ld) + '\\n' + outer(cards) : null;
-      if (!out || cards.length === 0) {
+      var plp = document.querySelectorAll('[data-qa="plp-product-box"]');
+      var boxes = document.querySelectorAll('a[id^="productBox-"]');
+      var cards = [];
+      for (var i=0;i<plp.length && i<40;i++) cards.push(slim(plp[i]));
+      var hasCards = cards.length || boxes.length;
+      var out = (ld.length || hasCards) ? outer(ld, 50) + '\\n' + cards.join('\\n') + '\\n' + outer(boxes, 40) : null;
+      if (!hasCards) {
         var nd = document.getElementById('__NEXT_DATA__');
         if (nd && nd.textContent) out = (out || '') + '<script id="__NEXT_DATA__" type="application/json">' + nd.textContent + '</script>';
         var parts = [], s = document.scripts;
-        for (var i = 0; i < s.length; i++) { var t = s[i].textContent || ''; if (t.indexOf('self.__next_f') !== -1) parts.push('<script>' + t + '</script>'); }
+        for (var j = 0; j < s.length; j++) { var t = s[j].textContent || ''; if (t.indexOf('self.__next_f') !== -1) parts.push('<script>' + t + '</script>'); }
         if (parts.length) out = (out || '') + parts.join('');
       }
       if (!out) out = document.documentElement.outerHTML;
