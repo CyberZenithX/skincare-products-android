@@ -44,8 +44,57 @@ export class AiError extends Error {
   constructor(
     message: string,
     readonly kind: 'invalid_output' | 'upstream' | 'timeout',
+    /** Gemini's HTTP status, when it answered with an error. */
+    readonly status?: number,
+    /** Gemini's error text or the validation problem. Never contains the photo or prompt. */
+    readonly detail?: string,
   ) {
     super(message);
+  }
+}
+
+/** Safe-to-log summary of an error (no request data). */
+export function describeAiError(e: AiError) {
+  return { kind: e.kind, status: e.status ?? null, detail: e.detail ?? e.message };
+}
+
+/**
+ * One raw generateContent call with our standard config. Returns the response
+ * text or throws AiError carrying Gemini's status and error message.
+ */
+export async function callGemini(
+  env: Env,
+  opts: { system?: string; parts: Part[]; responseJsonSchema?: unknown; temperature?: number; timeoutMs?: number },
+): Promise<string> {
+  const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
+  try {
+    const res = await ai.models.generateContent({
+      model: env.GEMINI_MODEL,
+      contents: [{ role: 'user', parts: opts.parts }],
+      config: {
+        ...(opts.system ? { systemInstruction: opts.system } : {}),
+        ...(opts.responseJsonSchema ? { responseMimeType: 'application/json', responseJsonSchema: opts.responseJsonSchema } : {}),
+        temperature: opts.temperature ?? Number(env.GEMINI_TEMPERATURE ?? '0.2'),
+        seed: 7,
+        abortSignal: AbortSignal.timeout(opts.timeoutMs ?? 25_000),
+      },
+    });
+    const text = res.text;
+    if (!text) {
+      // Blocked by safety filters, or the model stopped early: say why.
+      const c = res.candidates?.[0];
+      const reason = res.promptFeedback?.blockReason ?? c?.finishReason ?? 'empty response';
+      throw new AiError('Gemini returned no text', 'upstream', undefined, `no text (${reason})`);
+    }
+    return text;
+  } catch (e) {
+    if (e instanceof AiError) throw e;
+    const name = (e as Error)?.name ?? '';
+    if (name === 'TimeoutError' || name === 'AbortError') throw new AiError('Gemini timed out', 'timeout', undefined, `no answer within ${opts.timeoutMs ?? 25_000} ms`);
+    const status = (e as { status?: number })?.status;
+    // Gemini's error message describes what it rejected (key, model, schema...), not our data.
+    const detail = String((e as Error)?.message ?? e).slice(0, 500);
+    throw new AiError(`Gemini call failed (${status ?? 'network'})`, 'upstream', status, detail);
   }
 }
 
@@ -64,36 +113,20 @@ export interface JsonCall<T> {
  * ONCE with the problem fed back, then throws. Never logs prompts or images.
  */
 export async function generateJson<T>(env: Env, call: JsonCall<T>): Promise<T> {
-  const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
   const responseJsonSchema = toGeminiSchema(call.schema);
-  const temperature = call.temperature ?? Number(env.GEMINI_TEMPERATURE ?? '0.2');
   let feedback: string | null = null;
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const parts: Part[] = feedback
       ? [...call.parts, { text: `Your previous answer was rejected: ${feedback}. Return corrected JSON only.` }]
       : call.parts;
-    let text: string | undefined;
-    try {
-      const res = await ai.models.generateContent({
-        model: env.GEMINI_MODEL,
-        contents: [{ role: 'user', parts }],
-        config: {
-          systemInstruction: call.system,
-          responseMimeType: 'application/json',
-          responseJsonSchema,
-          temperature,
-          seed: 7,
-          abortSignal: AbortSignal.timeout(call.timeoutMs ?? 25_000),
-        },
-      });
-      text = res.text;
-    } catch (e) {
-      const name = (e as Error)?.name ?? '';
-      if (name === 'TimeoutError' || name === 'AbortError') throw new AiError('Gemini timed out', 'timeout');
-      // Status only: never echo the request.
-      throw new AiError(`Gemini call failed (${(e as { status?: number })?.status ?? 'network'})`, 'upstream');
-    }
+    const text = await callGemini(env, {
+      system: call.system,
+      parts,
+      responseJsonSchema,
+      temperature: call.temperature,
+      timeoutMs: call.timeoutMs,
+    });
 
     let parsed: unknown;
     try {
@@ -114,7 +147,7 @@ export async function generateJson<T>(env: Env, call: JsonCall<T>): Promise<T> {
     }
     return result.data;
   }
-  throw new AiError(`Gemini output failed validation twice: ${feedback}`, 'invalid_output');
+  throw new AiError('Gemini output failed validation twice', 'invalid_output', undefined, feedback?.slice(0, 500));
 }
 
 export const imagePart = (base64: string): Part => ({ inlineData: { mimeType: 'image/jpeg', data: base64 } });

@@ -6,7 +6,7 @@ The rule above everything else is **accurate results**. When speed, looks or ext
 
 ```
 /app            Expo app (TypeScript, Expo Router, dev build — not Expo Go)
-/backend        Vercel Node.js function (Hono, TypeScript): /analyze /clarify /products /verify /probe /health
+/backend        Vercel Node.js function (Hono, TypeScript): /analyze /clarify /products /verify /probe /diag /health
 /backend/mocks  saved sample responses served when MOCK=1
 /shared         zod schemas + types + safety rules + Skin Map geometry + camera guide (used by app and backend)
 vercel.json     tells Vercel how to install and build /backend (Build Output API)
@@ -24,9 +24,10 @@ What was tested on 2026-11-12, from a cloud container (not yet from a deployed V
 | `curl` with a browser User-Agent and `Accept-Language: en-AE` (HTTP/2 and HTTP/1.1) | TLS completes, then noon drops the connection (`INTERNAL_ERROR` / empty reply) |
 | Real headless Chromium (Playwright) | HTTP 502, 174-byte body |
 | The backend's own fetch, `GET /probe` (Workers runtime, then Node 22 after the Vercel move) | HTTP 503 with 0 bytes; under Node, HTTP 200 with a 2.6 KB page and no products. Both give `verdict: "blocked"`, and `/products` returns `{"status":"blocked"}` |
+| The deployed Vercel function, `GET /probe?q=niacinamide serum` | No answer within the 8 s fetch timeout (`verdict: "blocked"`, `error: "TimeoutError"`) |
 | Other sites from the same container | load normally |
 
-Because a real browser is blocked too, this is an IP-reputation block, not a User-Agent or TLS-fingerprint issue. Vercel functions also run from datacenter (AWS) IP space, so expect the same. **Still to do (needs the Vercel project):** deploy and run `GET /probe` there, then update this table. If it says `works`, Layer 1 becomes the main path again with no code changes.
+Because a real browser is blocked too, this is an IP-reputation block, not a User-Agent or TLS-fingerprint issue. The Vercel result fits that: noon doesn't answer datacenter (AWS) traffic at all. Layer 1 (server fetch) will rarely work on Vercel, so the phone WebView (Layer 2) is the main path. If a later probe says `works`, Layer 1 can carry more of the load with no code changes.
 
 ```bash
 curl -H "x-invite-code: $CODE" -H "x-device-id: probe-0001" "https://<your-project>.vercel.app/probe?q=niacinamide%20serum"
