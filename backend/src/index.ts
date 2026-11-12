@@ -87,7 +87,7 @@ app.post('/analyze', async (c) => {
     return c.json(await finish(null, raw, req.answers, 'en'));
   }
   try {
-    return c.json(await analyze(c.env, req));
+    return c.json(await analyze(c.env, req, { debug: c.req.query('debug') === '1' }));
   } catch (e) {
     return aiFail(c, e);
   }

@@ -170,9 +170,33 @@ export const SafetyAdjustment = z.object({
 });
 export type SafetyAdjustment = z.infer<typeof SafetyAdjustment>;
 
+/**
+ * What Gemini can actually see, written BEFORE it scores (evidence first, then
+ * judgment). Never shown to users and never translated; returned only for
+ * debugging with /analyze?debug=1.
+ */
+export const Observations = z.object({
+  lighting: z.string(),
+  skin_tone: z.string(),
+  zones: z.object({
+    forehead: z.string(),
+    nose: z.string(),
+    left_cheek: z.string(),
+    right_cheek: z.string(),
+    chin: z.string(),
+  }),
+});
+export type Observations = z.infer<typeof Observations>;
+
+/** Gemini's output for /analyze: observations first (field order = writing order), then the profile. */
+export const GeminiAnalysis = z.object({ observations: Observations, ...SkinProfile.shape });
+export type GeminiAnalysis = z.infer<typeof GeminiAnalysis>;
+
 export const AnalyzeResponse = z.object({
   ok: z.literal(true),
   profile: SkinProfile,
+  /** Only with /analyze?debug=1 (acceptance scripts): what Gemini saw before scoring. */
+  debug_observations: Observations.optional(),
   /** Language the free-text fields are actually in (falls back to en if translation failed). */
   text_language: Language,
   /** What the backend changed to enforce answers and safety rules. */

@@ -2,7 +2,9 @@ import {
   enforceProfile,
   avoidTermsForListings,
   z,
-  SkinProfile,
+  GeminiAnalysis,
+  ZONE_IDS,
+  type SkinProfile,
   type AnalyzeRequest,
   type AnalyzeResponse,
   type Language,
@@ -28,6 +30,16 @@ export function checkProfile(p: SkinProfile): string | null {
   return null;
 }
 
+/** Observations must be filled in before scoring: that's the point of them. */
+export function checkAnalysis(a: GeminiAnalysis): string | null {
+  if (!a.observations.lighting.trim()) return 'fill observations.lighting first';
+  if (!a.photo_quality.usable) return checkProfile(a); // nothing reliable to observe per zone
+  if (!a.observations.skin_tone.trim()) return 'fill observations.skin_tone first';
+  const empty = ZONE_IDS.filter((z) => !a.observations.zones[z].trim());
+  if (empty.length) return `fill observations.zones for ${empty.join(', ')} (write "nothing notable" if nothing is visible)`;
+  return checkProfile(a);
+}
+
 /**
  * Time budget inside Vercel's 60 s function limit: the analysis (retry included)
  * must be done by 40 s; the Arabic translation then gets what's left up to 55 s.
@@ -35,18 +47,21 @@ export function checkProfile(p: SkinProfile): string | null {
 export const ANALYSIS_BUDGET_MS = 40_000;
 export const REQUEST_BUDGET_MS = 55_000;
 
-export async function analyze(env: Env, req: AnalyzeRequest): Promise<AnalyzeResponse> {
+export async function analyze(env: Env, req: AnalyzeRequest, opts: { debug?: boolean } = {}): Promise<AnalyzeResponse> {
   const started = Date.now();
   // Identical prompt for every language: the judgment can't depend on it.
-  const raw = await generateJson(env, {
+  // Gemini writes its observations first, then scores from them.
+  const { observations, ...raw } = await generateJson(env, {
     system: ANALYZE_SYSTEM,
     parts: [imagePart(req.image_base64), { text: describeAnswers(req.answers) }],
-    schema: SkinProfile,
-    check: checkProfile,
+    schema: GeminiAnalysis,
+    check: checkAnalysis,
     timeoutMs: 35_000,
     deadline: started + ANALYSIS_BUDGET_MS,
   });
-  return finish(env, raw, req.answers, req.language, started + REQUEST_BUDGET_MS);
+  // Observations stop here: never shown to users, never translated.
+  const res = await finish(env, raw, req.answers, req.language, started + REQUEST_BUDGET_MS);
+  return opts.debug ? { ...res, debug_observations: observations } : res;
 }
 
 export async function finish(

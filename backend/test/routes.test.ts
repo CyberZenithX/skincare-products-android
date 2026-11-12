@@ -109,3 +109,46 @@ describe('store', () => {
     expect(await s.getJson('old')).toBeNull();
   });
 });
+
+describe('observations before scores', () => {
+  const obs = {
+    lighting: 'Soft window light from the left, no flash.',
+    skin_tone: 'Medium olive.',
+    zones: { forehead: 'diffuse shine; 2 small bumps', nose: 'shine, visible pores', left_cheek: 'nothing notable', right_cheek: 'nothing notable', chin: '1 small bump' },
+  };
+
+  it('asks Gemini to write observations first', async () => {
+    const { GeminiAnalysis } = await import('@skinfix/shared');
+    const schema = toGeminiSchema(GeminiAnalysis) as { propertyOrdering: string[] };
+    expect(schema.propertyOrdering[0]).toBe('observations');
+    expect(schema.propertyOrdering.slice(1)).toContain('zones');
+  });
+
+  it('requires filled observations for a usable photo, retries otherwise', async () => {
+    const { checkAnalysis } = await import('../src/analyze');
+    const p = SkinProfile.parse(mock);
+    expect(checkAnalysis({ ...p, observations: obs })).toBeNull();
+    expect(checkAnalysis({ ...p, observations: { ...obs, zones: { ...obs.zones, chin: ' ' } } })).toMatch(/chin/);
+    expect(checkAnalysis({ ...p, observations: { ...obs, lighting: '' } })).toMatch(/lighting/);
+  });
+
+  it('does not require zone observations for an unusable photo', async () => {
+    const { checkAnalysis } = await import('../src/analyze');
+    const p = SkinProfile.parse(mock);
+    const unusable = { ...p, products: [], photo_quality: { usable: false, issue: 'too_dark' as const, tip: 'Face a window.' } };
+    const empty = { lighting: 'Very dark, face barely visible.', skin_tone: '', zones: { forehead: '', nose: '', left_cheek: '', right_cheek: '', chin: '' } };
+    expect(checkAnalysis({ ...unusable, observations: empty })).toBeNull();
+  });
+
+  it('never returns observations unless debug is on', async () => {
+    const r = AnalyzeResponse.parse(await (await post('/analyze', { image_base64: FAKE_JPEG, answers: ANSWERS, language: 'en' })).json());
+    expect(r.debug_observations).toBeUndefined();
+  });
+
+  it('puts score definitions and the evidence-first rule in the prompt', async () => {
+    const { ANALYZE_SYSTEM } = await import('../src/prompts');
+    expect(ANALYZE_SYSTEM).toMatch(/OBSERVATIONS FIRST/);
+    for (const f of ['oil:', 'redness:', 'breakouts:', 'dark_spots:', 'dryness:', 'texture:']) expect(ANALYZE_SYSTEM).toContain(`- ${f}`);
+    expect(ANALYZE_SYSTEM).toMatch(/Count each feature under ONE finding only/);
+  });
+});
