@@ -12,7 +12,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://REPLACE-WITH-YOUR-PROJECT.vercel.app"
+        "EXPO_PUBLIC_API_URL": "https://skincare-products-android.vercel.app"
       }
     },
     "preview": {
@@ -22,7 +22,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://REPLACE-WITH-YOUR-PROJECT.vercel.app"
+        "EXPO_PUBLIC_API_URL": "https://skincare-products-android.vercel.app"
       }
     }
   }
