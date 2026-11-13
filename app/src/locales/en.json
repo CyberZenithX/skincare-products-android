@@ -50,7 +50,8 @@
     "permissionBody": "Skin Fix needs your camera to scan your face. The photo stays on your phone until you start the analysis.",
     "permissionButton": "Allow camera",
     "noFaceOnPhoto": "We couldn't find your face clearly in that photo. Try again facing the camera.",
-    "error": "The camera stopped. Try again."
+    "error": "The camera stopped. Try again.",
+    "manualOnly": "Line up your face in the oval, then tap the button"
   },
   "check": {
     "title": "Does this look clear?",

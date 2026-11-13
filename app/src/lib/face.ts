@@ -4,12 +4,16 @@
 // and hasn't been updated for current React Native, so it was swapped for this.
 // This file is the only place that knows which library is used.
 
-import { createImageFaceDetector, type Contours } from 'react-native-vision-camera-face-detector';
+import type { Contours } from 'react-native-vision-camera-face-detector';
 import { buildSkinMap, type FaceContours, type Pt, type SkinMapGeometry } from '@skinfix/shared';
 
-let detector: ReturnType<typeof createImageFaceDetector> | null = null;
+type FaceLib = typeof import('react-native-vision-camera-face-detector');
+let detector: ReturnType<FaceLib['createImageFaceDetector']> | null = null;
 function getDetector() {
-  detector ??= createImageFaceDetector({ performanceMode: 'accurate', runContours: true, runLandmarks: false });
+  // Loaded on first use, so a native-module problem surfaces as a caught error here
+  // instead of breaking every screen that imports this file.
+  const lib = require('react-native-vision-camera-face-detector') as FaceLib;
+  detector ??= lib.createImageFaceDetector({ performanceMode: 'accurate', runContours: true, runLandmarks: false });
   return detector;
 }
 

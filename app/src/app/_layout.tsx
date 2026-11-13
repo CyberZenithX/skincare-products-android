@@ -15,6 +15,9 @@ import {
 } from '@expo-google-fonts/ibm-plex-sans-arabic';
 import { initI18n } from '@/lib/i18n';
 import { usePalette } from '@/theme';
+import { CrashScreen } from '@/components/CrashScreen';
+
+export { CrashScreen as ErrorBoundary };
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 

@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Camera, useCameraDevice, useCameraPermission, usePhotoOutput, type CameraRef } from 'react-native-vision-camera';
-import { createFaceDetectorOutput, transformFacesToPreviewCoordinates, type Face } from 'react-native-vision-camera-face-detector';
+import { Camera, useCameraDevice, useCameraPermission, usePhotoOutput, type CameraOutput, type CameraRef } from 'react-native-vision-camera';
+import type { Face } from 'react-native-vision-camera-face-detector';
 import { Canvas, Path, Skia, BlurMask, FillType } from '@shopify/react-native-skia';
 import { interpolateColor, useDerivedValue, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,17 +16,71 @@ import { evaluateGuide, type GuideHint } from '@skinfix/shared';
 import { deleteQuietly, preparePhoto } from '@/lib/photo';
 import { scanStore } from '@/lib/scanStore';
 import { space, usePalette } from '@/theme';
+import { CrashScreen } from '@/components/CrashScreen';
+
+export { CrashScreen as ErrorBoundary };
+
+// The live face guide is a bonus: if its native module can't load or start on
+// this phone, the camera still works with the manual shutter.
+type FaceLib = typeof import('react-native-vision-camera-face-detector');
+let faceLib: FaceLib | null | undefined;
+function loadFaceLib(): FaceLib | null {
+  if (faceLib === undefined) {
+    try {
+      faceLib = require('react-native-vision-camera-face-detector') as FaceLib;
+    } catch {
+      faceLib = null;
+    }
+  }
+  return faceLib;
+}
 
 const HOLD_MS = 1000;
 const TIPS_KEY = 'tips:seen';
 
 export default function CameraScreen() {
   const { t } = useTranslation();
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const pickFromGallery = async () => {
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1, allowsEditing: false });
+    if (res.canceled || !res.assets[0]) return;
+    setBusy(true);
+    try {
+      const prepared = await preparePhoto(res.assets[0].uri, false, 'gallery');
+      scanStore.set({ photo: { base64: prepared.base64, width: prepared.width, height: prepared.height, source: 'gallery' }, geometry: null });
+      router.push({ pathname: '/scan/check', params: { tmp: prepared.tempUri } });
+    } catch {
+      setError(t('camera.error'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Camera objects are only created once permission is granted.
+  if (hasPermission) return <LiveCamera />;
+  return (
+    <Screen>
+      <View style={{ flex: 1, padding: space.xl, justifyContent: 'center', gap: space.lg }}>
+        <Text variant="title" weight="semibold">{t('camera.permissionTitle')}</Text>
+        <Text muted>{t('camera.permissionBody')}</Text>
+        <Button title={t('camera.permissionButton')} onPress={requestPermission} disabled={busy} />
+        <Button title={t('camera.gallery')} kind="ghost" onPress={pickFromGallery} disabled={busy} />
+        {error && <Text variant="small" center>{error}</Text>}
+        <Button title={t('common.back')} kind="ghost" onPress={() => router.back()} />
+      </View>
+    </Screen>
+  );
+}
+
+function LiveCamera() {
+  const { t } = useTranslation();
   const p = usePalette();
   const { hint: initialHint } = useLocalSearchParams<{ hint?: string }>();
   const { width, height } = useWindowDimensions();
   const device = useCameraDevice('front');
-  const { hasPermission, requestPermission } = useCameraPermission();
   const [focused, setFocused] = useState(true);
   const [busy, setBusy] = useState(false);
   const [tips, setTips] = useState(false);
@@ -115,7 +169,8 @@ export default function CameraScreen() {
   onFaces.current = (faces: Face[]) => {
     if (capturing.current || tips) return;
     const cam = cameraRef.current;
-    const view = cam ? transformFacesToPreviewCoordinates(faces, cam) : faces;
+    const lib = loadFaceLib();
+    const view = cam && lib ? lib.transformFacesToPreviewCoordinates(faces, cam) : faces;
     const r = evaluateGuide(view, oval);
     progress.value = withTiming(r.passed / 4, { duration: 180 });
     setHint(r.hint);
@@ -126,34 +181,27 @@ export default function CameraScreen() {
       okSince.current = null;
     }
   };
-  const faceOutput = useMemo(
-    () =>
-      createFaceDetectorOutput({
-        onFacesDetected: (f) => onFaces.current(f),
-        onError: () => undefined,
-        performanceMode: 'fast',
-        runContours: false,
-        runLandmarks: false,
-        runClassifications: false,
-        cameraFacing: 'front',
-        outputResolution: 'preview',
-      }),
-    [],
-  );
-
-  // ---- states
-  if (!hasPermission) {
-    return (
-      <Screen>
-        <View style={{ flex: 1, padding: space.xl, justifyContent: 'center', gap: space.lg }}>
-          <Text variant="title" weight="semibold">{t('camera.permissionTitle')}</Text>
-          <Text muted>{t('camera.permissionBody')}</Text>
-          <Button title={t('camera.permissionButton')} onPress={requestPermission} />
-          <Button title={t('camera.gallery')} kind="ghost" onPress={pickFromGallery} />
-        </View>
-      </Screen>
-    );
-  }
+  const faceOutput = useMemo((): CameraOutput | null => {
+    try {
+      const lib = loadFaceLib();
+      return lib
+        ? lib.createFaceDetectorOutput({
+            onFacesDetected: (f) => onFaces.current(f),
+            onError: () => undefined,
+            performanceMode: 'fast',
+            runContours: false,
+            runLandmarks: false,
+            runClassifications: false,
+            cameraFacing: 'front',
+            outputResolution: 'preview',
+          })
+        : null;
+    } catch {
+      return null;
+    }
+  }, []);
+  const outputs = useMemo(() => (faceOutput ? [photoOutput, faceOutput] : [photoOutput]), [photoOutput, faceOutput]);
+  const liveGuide = faceOutput !== null;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
@@ -163,7 +211,7 @@ export default function CameraScreen() {
           style={StyleSheet.absoluteFill}
           device={device}
           isActive={focused && !busy}
-          outputs={[photoOutput, faceOutput]}
+          outputs={outputs}
           resizeMode="cover"
         />
       )}
@@ -184,7 +232,7 @@ export default function CameraScreen() {
 
         <View style={{ position: 'absolute', top: oval.cy + oval.h / 2 + space.lg, left: space.xl, right: space.xl, alignItems: 'center', gap: space.sm }}>
           <View style={{ backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999 }}>
-            <Text weight="medium" color="#fff" center>{t(`camera.${hint}`)}</Text>
+            <Text weight="medium" color="#fff" center>{liveGuide ? t(`camera.${hint}`) : t('camera.manualOnly')}</Text>
           </View>
           {error && <Text variant="small" color="#FFD9CC" center>{error}</Text>}
         </View>
